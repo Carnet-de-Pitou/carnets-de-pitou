@@ -25,6 +25,7 @@
     <a href="#derniers">Derniers textes</a>
     <a href="#archives">Archives</a>
     <a href="#presentation">Présentation</a><a href="#editeur">Éditeur</a>
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">♪ Ambiance : OFF</button>
   </div>
 </nav>
 
@@ -160,7 +161,6 @@
   </article>
 </div>
 
-
 <div class="preview-modal" id="previewModal">
   <button class="close" id="previewClose">Fermer ×</button>
   <article class="paper">
@@ -172,7 +172,11 @@
   </article>
 </div>
 
+<audio id="siteAmbience" preload="none" loop>
+  <source src="assets/ambiance-carnets-de-pitou-v2-1.mp3" type="audio/mpeg">
+</audio>
 <script src="data.js"></script>
 <script src="app.js"></script>
 <script src="editor.js"></script>
+<script src="audio.js"></script>
 </body></html>
