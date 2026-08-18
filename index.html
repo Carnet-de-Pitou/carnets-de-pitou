@@ -4,181 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Les Carnets de Pitou</title>
-<link rel="stylesheet" href="style.css?v=20260818-4">
+<link rel="stylesheet" href="style.css?v=20260818-5">
 </head>
 <body>
 <div class="dust"></div>
-<header class="hero">
-  <div class="hero-shade"></div>
-  <div class="wrap hero-inner">
-    <div class="eyebrow">Recueil de textes & nouvelles</div>
-    <h1>Les Carnets de Pitou</h1>
-    <p>Questionnements, doutes, colères, souvenirs et autres pages laissées sur le bureau.</p>
-    <a class="enter" href="#blog">Ouvrir les carnets</a>
-  </div>
-</header>
-
-<main class="wrap intro-wrap">
-<section class="section intro" id="presentation">
-  <div class="eyebrow">Présentation</div>
-  <h2>Quelques mots avant d'entrer</h2>
-  <div class="presentation-text">
-<p><em>Les Carnets de Pitou sont un recueil de textes et de nouvelles sans prétention de rivaliser avec de vrais auteurs professionnels, mais qui ont pour finalité de me permettre d'exprimer mes questionnements, mes doutes, mes colères et au sens plus large donc, mes émotions.</em></p>
-<p><em>Pardonnez d'avance l'amateurisme, l'impulsivité ou la prise de position merdique, et je vous souhaite bonne découverte.</em></p>
-<p><em>Cordialement,</em></p>
-<p><strong><em>Le Pitou.</em></strong></p>
-</div>
-</section>
-</main>
-
-<nav class="nav">
-  <div class="wrap">
-    <a class="brand" href="#">Les Carnets</a>
-    <a href="#blog">Blog</a>
-    <a href="#derniers">Derniers textes</a>
-    <a href="#archives">Archives</a>
-    <a href="#presentation">Présentation</a><a href="#editeur">Éditeur</a>
-    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">♪ Ambiance : OFF</button>
-  </div>
-</nav>
-
+<header class="hero"><div class="hero-shade"></div><div class="wrap hero-inner"><div class="eyebrow">Recueil de textes & nouvelles</div><h1>Les Carnets de Pitou</h1><p>Questionnements, doutes, colères, souvenirs et autres pages laissées sur le bureau.</p><a class="enter" href="#blog">Ouvrir les carnets</a></div></header>
+<main class="wrap intro-wrap"><section class="section intro" id="presentation"><div class="eyebrow">Présentation</div><h2>Quelques mots avant d'entrer</h2><div class="presentation-text"><p><em>Les Carnets de Pitou sont un recueil de textes et de nouvelles sans prétention de rivaliser avec de vrais auteurs professionnels, mais qui ont pour finalité de me permettre d'exprimer mes questionnements, mes doutes, mes colères et au sens plus large donc, mes émotions.</em></p><p><em>Pardonnez d'avance l'amateurisme, l'impulsivité ou la prise de position merdique, et je vous souhaite bonne découverte.</em></p><p><em>Cordialement,</em></p><p><strong><em>Le Pitou.</em></strong></p></div></section></main>
+<nav class="nav"><div class="wrap"><a class="brand" href="#">Les Carnets</a><a href="#blog">Blog</a><a href="#derniers">Derniers textes</a><a href="#archives">Archives</a><a href="#presentation">Présentation</a><button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false">♪ Ambiance : OFF</button></div></nav>
 <main class="wrap">
-<section class="section" id="blog">
-  <div class="eyebrow">Les rubriques</div>
-  <h2>Blog</h2>
-  <div class="shelves" id="shelves"></div>
-</section>
-
-<section class="section" id="derniers">
-  <div class="section-head">
-    <div><div class="eyebrow">Sur le bureau</div><h2>Derniers textes</h2></div>
-    <div class="count" id="resultCount"></div>
-  </div>
-  <input class="search" id="search" placeholder="Rechercher un titre, une rubrique ou quelques mots…">
-  <div class="cards" id="cards"></div>
-</section>
-
-<section class="section" id="archives">
-  <div class="eyebrow">Poussière & mémoire</div>
-  <h2>Archives</h2>
-  <div class="archive-layout">
-    <aside class="archive-index" id="archiveIndex"></aside>
-    <div class="archive-box" id="archiveBox"></div>
-  </div>
-</section>
-
-<section class="section admin-section" id="editeur">
-  <div class="eyebrow">Atelier d'écriture</div>
-  <h2>Éditeur des Carnets</h2>
-  <p class="admin-note">Cette interface prépare un article et permet de l'exporter. Dans une page web locale, le navigateur ne peut pas modifier silencieusement les fichiers du site : l'enregistrement se fait donc par téléchargement d'un fichier article, sans toucher au code.</p>
-
-  <div class="editor-grid">
-    <div class="editor-form">
-      <label>Titre<input id="edTitle" placeholder="Titre du texte"></label>
-      <div class="form-row">
-        <label>Date<input id="edDate" type="date"></label>
-        <label>Rubrique<select id="edCategory"></select></label>
-      </div>
-      <label>Sous-titre <span>(facultatif)</span><input id="edSubtitle" placeholder="Sous-titre"></label>
-
-      <div class="toolbar" id="toolbar">
-        <button type="button" data-cmd="bold"><b>G</b></button>
-        <button type="button" data-cmd="italic"><i>I</i></button>
-        <button type="button" data-cmd="underline"><u>S</u></button>
-        <button type="button" data-cmd="strikeThrough"><s>abc</s></button>
-        <span class="tool-sep"></span>
-        <button type="button" data-block="h2">Titre</button>
-        <button type="button" data-block="h3">Sous-titre</button>
-        <button type="button" data-block="blockquote">Citation</button>
-        <button type="button" data-block="p">¶</button>
-        <span class="tool-sep"></span>
-        <button type="button" data-cmd="insertUnorderedList">• Liste</button>
-        <button type="button" data-cmd="insertOrderedList">1. Liste</button>
-        <button type="button" data-cmd="justifyLeft">←</button>
-        <button type="button" data-cmd="justifyCenter">↔</button>
-        <button type="button" data-cmd="justifyRight">→</button>
-        <span class="tool-sep"></span>
-        <select id="fontFamily" title="Police">
-          <option value="Georgia">Georgia</option>
-          <option value="Garamond">Garamond</option>
-          <option value="Times New Roman">Times New Roman</option>
-          <option value="Courier New">Machine à écrire</option>
-          <option value="Arial">Arial</option>
-        </select>
-        <select id="fontSize" title="Taille">
-          <option value="2">Petit</option>
-          <option value="3" selected>Normal</option>
-          <option value="4">Grand</option>
-          <option value="5">Très grand</option>
-        </select>
-        <button type="button" id="addLink">Lien</button>
-        <button type="button" id="addRule">— Séparateur</button>
-        <button type="button" id="clearFormat">Effacer format</button>
-      </div>
-
-      <div id="richEditor" class="rich-editor" contenteditable="true" spellcheck="true">
-        <p>Écris ici ou colle ton texte depuis Word…</p>
-      </div>
-
-      <div class="editor-actions">
-        <button id="previewBtn">Aperçu</button>
-        <button id="publishBtn" class="admin-primary">Publier dans les Carnets</button>
-        <button id="saveDraftBtn">Sauvegarder dans ce navigateur</button>
-        <button id="exportBtn">Exporter l'article</button>
-        <button id="exportLibraryBtn">Sauvegarder ma bibliothèque</button>
-        <label class="import-label">Restaurer une sauvegarde<input id="importLibraryInput" type="file" accept=".json,application/json"></label>
-        <button id="newBtn">Nouveau</button>
-      </div>
-      <div id="editorStatus" class="editor-status"></div>
-    </div>
-
-    <aside class="draft-panel">
-      <h3>Brouillons locaux</h3>
-      <p>Conservés uniquement dans ce navigateur.</p>
-      <div id="draftList"></div>
-    </aside>
-  </div>
-</section>
-
+<section class="section" id="blog"><div class="eyebrow">Les rubriques</div><h2>Blog</h2><div class="shelves" id="shelves"></div></section>
+<section class="section" id="derniers"><div class="section-head"><div><div class="eyebrow">Sur le bureau</div><h2>Derniers textes</h2></div><div class="count" id="resultCount"></div></div><input class="search" id="search" placeholder="Rechercher un titre, une rubrique ou quelques mots…"><div class="cards" id="cards"></div></section>
+<section class="section" id="archives"><div class="eyebrow">Poussière & mémoire</div><h2>Archives</h2><div class="archive-layout"><aside class="archive-index" id="archiveIndex"></aside><div class="archive-box" id="archiveBox"></div></div></section>
 </main>
-
-<footer class="footer">
-  <strong>Les Carnets de Pitou</strong>
-  <span>Quelques pages abandonnées sur un vieux bureau.</span>
-</footer>
-
-<div class="reader" id="reader">
-  <button class="close" id="close">Fermer ×</button>
-  <article class="paper">
-    <div class="meta" id="readerMeta"></div>
-    <h1 id="readerTitle"></h1>
-    <div class="ornament">❧</div>
-    <div class="article" id="article"></div>
-    <div class="reader-nav">
-      <button id="prevText">← Texte précédent</button>
-      <button id="backShelf">Retour aux Carnets</button>
-      <button id="nextText">Texte suivant →</button>
-    </div>
-    <div class="endmark">— Fin —</div>
-  </article>
-</div>
-
-<div class="preview-modal" id="previewModal">
-  <button class="close" id="previewClose">Fermer ×</button>
-  <article class="paper">
-    <div class="meta" id="previewMeta"></div>
-    <h1 id="previewTitle"></h1>
-    <div class="preview-subtitle" id="previewSubtitle"></div>
-    <div class="ornament">❧</div>
-    <div class="article" id="previewArticle"></div>
-  </article>
-</div>
-
-<audio id="siteAmbience" preload="none" loop>
-  <source src="assets/ambiance-carnets-de-pitou-v2-1.mp3" type="audio/mpeg">
-</audio>
-<script src="data.js"></script>
-<script src="app.js"></script>
-<script src="editor.js"></script>
-<script src="audio.js"></script>
+<footer class="footer"><strong>Les Carnets de Pitou</strong><span>Quelques pages abandonnées sur un vieux bureau.</span></footer>
+<div class="reader" id="reader"><button class="close" id="close">Fermer ×</button><article class="paper"><div class="meta" id="readerMeta"></div><h1 id="readerTitle"></h1><div class="ornament">❧</div><div class="article" id="article"></div><div class="reader-nav"><button id="prevText">← Texte précédent</button><button id="backShelf">Retour aux Carnets</button><button id="nextText">Texte suivant →</button></div><div class="endmark">— Fin —</div></article></div>
+<audio id="siteAmbience" preload="none" loop><source src="assets/ambiance-carnets-de-pitou-v2-1.mp3" type="audio/mpeg"></audio>
+<script src="data.js"></script><script src="app.js"></script><script src="audio.js"></script>
 </body></html>
