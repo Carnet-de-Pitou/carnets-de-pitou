@@ -98,3 +98,6 @@ body:after{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inse
 .import-label{display:inline-flex!important;align-items:center;width:auto!important;margin:0!important;background:#2a1c12;border:1px solid #745637;color:#e6d5b7!important;padding:7px 9px;cursor:pointer;font-size:inherit!important}
 .import-label input{display:none}
 .admin-primary{background:#704a27!important;border-color:#b3864e!important}
+.sound-toggle{margin-left:2px;border:1px solid #705438;background:#17100bd9;color:#cdbb9d;padding:7px 10px;font:inherit;font-size:.84rem;cursor:pointer;white-space:nowrap}
+.sound-toggle:hover,.sound-toggle.on{color:#f3dfbd;border-color:#a98250;background:#2a1b10}
+@media(max-width:700px){.sound-toggle{font-size:.78rem;padding:6px 8px}}
