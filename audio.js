@@ -12,12 +12,14 @@
   }
 
   async function start() {
+    display(true);
+    localStorage.setItem('pitou-ambience', 'on');
     try {
       await audio.play();
-      localStorage.setItem('pitou-ambience', 'on');
-      display(true);
     } catch (error) {
       display(false);
+      localStorage.setItem('pitou-ambience', 'off');
+      console.error('Lecture ambiance impossible :', error);
     }
   }
 
@@ -27,19 +29,20 @@
     display(false);
   }
 
-  button.addEventListener('click', () => {
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
     if (audio.paused) start();
     else stop();
   });
 
-  // Les navigateurs interdisent généralement le son automatique avant
-  // une interaction. Si le visiteur avait choisi ON, on reprend au
-  // premier clic/toucher/touche de sa prochaine visite.
-  if (localStorage.getItem('pitou-ambience') === 'on') {
-    const resume = () => start();
+  const remembered = localStorage.getItem('pitou-ambience') === 'on';
+  display(remembered && !audio.paused);
+
+  if (remembered) {
+    const resume = () => {
+      if (audio.paused) start();
+    };
     document.addEventListener('pointerdown', resume, { once: true });
     document.addEventListener('keydown', resume, { once: true });
   }
-
-  display(false);
 })();
