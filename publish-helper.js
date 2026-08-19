@@ -7,18 +7,13 @@ function downloadLibrary(){
  localLibrary().forEach(t=>{if(t&&t.slug)map.set(t.slug,{...t,local:false})});
  const content='window.PITOU_PUBLIC_LIBRARY = '+JSON.stringify([...map.values()])+';\n';
  const blob=new Blob([content],{type:'application/javascript;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='library.js';a.style.display='none';document.body.appendChild(a);a.click();
- setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},2000);
- const s=document.getElementById('editorStatus');if(s)s.textContent='Texte enregistré puis library.js préparé. Remplace celui du dépôt GitHub.';
+ a.href=url;a.download='library.js';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+ const s=document.getElementById('editorStatus');if(s)s.textContent='library.js préparé avec la bibliothèque publique et tes publications locales.';
 }
-// editor.js utilise btn.onclick. Ce wrapper appelle d'abord cette publication synchrone,
-// puis exporte seulement si pitou-published a réellement changé.
-const original=btn.onclick;
-btn.onclick=function(e){
- const before=localStorage.getItem('pitou-published')||'[]';
- if(typeof original==='function')original.call(this,e);
- const after=localStorage.getItem('pitou-published')||'[]';
- if(after!==before)downloadLibrary();
-};
+// Bouton séparé et explicite : aucun conflit avec le gestionnaire Publier de editor.js.
+const actions=btn.parentElement;
+let exportBtn=document.getElementById('downloadLibraryJsBtn');
+if(!exportBtn){exportBtn=document.createElement('button');exportBtn.type='button';exportBtn.id='downloadLibraryJsBtn';exportBtn.textContent='Télécharger library.js';actions.insertBefore(exportBtn,btn.nextSibling)}
+exportBtn.onclick=downloadLibrary;
 window.downloadPitouLibrary=downloadLibrary;
 })();
