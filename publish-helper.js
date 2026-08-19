@@ -9,9 +9,16 @@ function downloadLibrary(){
  const blob=new Blob([content],{type:'application/javascript;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download='library.js';a.style.display='none';document.body.appendChild(a);a.click();
  setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},2000);
- const s=document.getElementById('editorStatus');if(s)s.textContent='library.js préparé. Remplace celui du dépôt GitHub pour mettre le site en ligne.';
+ const s=document.getElementById('editorStatus');if(s)s.textContent='Texte enregistré puis library.js préparé. Remplace celui du dépôt GitHub.';
 }
-// Le téléchargement reste dans le clic utilisateur : les navigateurs peuvent bloquer un téléchargement déclenché après setTimeout.
-btn.addEventListener('click',()=>{setTimeout(downloadLibrary,0)},true);
+// editor.js utilise btn.onclick. Ce wrapper appelle d'abord cette publication synchrone,
+// puis exporte seulement si pitou-published a réellement changé.
+const original=btn.onclick;
+btn.onclick=function(e){
+ const before=localStorage.getItem('pitou-published')||'[]';
+ if(typeof original==='function')original.call(this,e);
+ const after=localStorage.getItem('pitou-published')||'[]';
+ if(after!==before)downloadLibrary();
+};
 window.downloadPitouLibrary=downloadLibrary;
 })();
