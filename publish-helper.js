@@ -6,12 +6,7 @@ function say(s){if(status)status.textContent=s}
 function esc(s){return(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'texte'}
 function plain(html){const d=document.createElement('div');d.innerHTML=html;return(d.textContent||'').replace(/\s+/g,' ').trim()}
-function currentItem(){
- const title=(document.getElementById('edTitle')?.value||'').trim(),editor=document.getElementById('richEditor');
- const raw=editor?.innerHTML||'',text=plain(raw),subtitle=(document.getElementById('edSubtitle')?.value||'').trim();
- const original=document.getElementById('edOriginalSlug')?.value||'';
- return {slug:original||slugify(title),title,date:document.getElementById('edDate')?.value||'',category:document.getElementById('edCategory')?.value||'',subtitle,ambience:document.getElementById('edAmbience')?.value||'default',minutes:Math.max(1,Math.ceil(text.split(/\s+/).filter(Boolean).length/220)),excerpt:text.slice(0,220)+(text.length>220?'…':''),html:(subtitle?`<p class="subtitle"><em>${esc(subtitle)}</em></p>`:'')+raw,local:false};
-}
+function currentItem(){const title=(document.getElementById('edTitle')?.value||'').trim(),editor=document.getElementById('richEditor'),raw=editor?.innerHTML||'',text=plain(raw),subtitle=(document.getElementById('edSubtitle')?.value||'').trim(),original=document.getElementById('edOriginalSlug')?.value||'';return{slug:original||slugify(title),title,date:document.getElementById('edDate')?.value||'',category:document.getElementById('edCategory')?.value||'',subtitle,ambience:document.getElementById('edAmbience')?.value||'default',minutes:Math.max(1,Math.ceil(text.split(/\s+/).filter(Boolean).length/220)),excerpt:text.slice(0,220)+(text.length>220?'…':''),html:(subtitle?`<p class="subtitle"><em>${esc(subtitle)}</em></p>`:'')+raw,local:false}}
 function mergeInto(base,extra){const map=new Map();(Array.isArray(base)?base:[]).forEach(t=>t&&t.slug&&map.set(t.slug,{...t,local:false}));if(extra&&extra.slug)map.set(extra.slug,{...extra,local:false});return[...map.values()]}
 function content(list){return 'window.PITOU_PUBLIC_LIBRARY = '+JSON.stringify(list)+';\n'}
 function b64unicode(str){const bytes=new TextEncoder().encode(str);let bin='';for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin)}
@@ -20,24 +15,25 @@ function parseLibrary(source){const marker='window.PITOU_PUBLIC_LIBRARY = ';cons
 function token(){return sessionStorage.getItem('pitou-github-token')||''}
 function connect(){const t=prompt('Colle ton jeton GitHub dédié aux Carnets. Il restera uniquement dans cet onglet et sera effacé quand tu fermes le navigateur.');if(!t)return false;sessionStorage.setItem('pitou-github-token',t.trim());say('GitHub connecté pour cette session.');return true}
 async function api(url,options={}){const t=token();const r=await fetch(url,{...options,headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(t?{Authorization:'Bearer '+t}:{}),...(options.headers||{})}});if(!r.ok){let msg='Erreur GitHub '+r.status;try{const j=await r.json();if(j.message)msg+=' : '+j.message}catch{}throw new Error(msg)}return r.json()}
+async function readRemote(){const current=await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}&_=${Date.now()}`);return{current,list:parseLibrary(decodeGithubText(current.content))}}
 async function publishGitHub(){
  const item=currentItem();if(!item.title){say('Ajoute un titre avant de mettre en ligne.');return}if(!plain(item.html)){say('Le texte est vide.');return}
- btn.click();
- if(!token()&&!connect())return;
- const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;say('Publication de « '+item.title+' » sur GitHub…');
+ btn.click();if(!token()&&!connect())return;
+ const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;say('Publication sécurisée de « '+item.title+' »…');
  try{
-  // GitHub est désormais la source de vérité : on relit TOUJOURS le library.js le plus récent avant d'ajouter/modifier le texte courant.
-  // Cela empêche un onglet resté ouvert d'écraser un chapitre publié quelques minutes auparavant.
-  const current=await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}&_=${Date.now()}`);
-  const remoteLibrary=parseLibrary(decodeGithubText(current.content));
-  const finalLibrary=mergeInto(remoteLibrary,item);
-  const body={message:'Publication depuis l’éditeur des Carnets : '+item.title,content:b64unicode(content(finalLibrary)),sha:current.sha,branch:BRANCH};
+  const before=await readRemote();
+  const beforeSlugs=new Set(before.list.filter(Boolean).map(t=>t.slug).filter(Boolean));
+  const finalLibrary=mergeInto(before.list,item);
+  if(finalLibrary.length<before.list.length)throw new Error('Sécurité : la publication supprimerait des textes. Publication annulée.');
+  const body={message:'Publication depuis l’éditeur des Carnets : '+item.title,content:b64unicode(content(finalLibrary)),sha:before.current.sha,branch:BRANCH};
   await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  window.PITOU_PUBLIC_LIBRARY=finalLibrary;localStorage.setItem('pitou-published','[]');
-  say('Publié : « '+item.title+' » est envoyé sur GitHub sans écraser les autres textes. GitHub Pages va actualiser le site.');setTimeout(()=>location.reload(),3500)
+  const after=await readRemote();const afterSlugs=new Set(after.list.filter(Boolean).map(t=>t.slug).filter(Boolean));
+  const missing=[...beforeSlugs].filter(s=>!afterSlugs.has(s));
+  if(missing.length||!afterSlugs.has(item.slug))throw new Error('ALERTE : vérification GitHub incohérente. N’ajoute aucun autre texte et conserve cette page ouverte.');
+  window.PITOU_PUBLIC_LIBRARY=after.list;localStorage.setItem('pitou-published','[]');
+  say('Publié et vérifié : « '+item.title+' ». '+beforeSlugs.size+' texte(s) existants conservés, aucun écrasement détecté.');setTimeout(()=>location.reload(),3500)
  }catch(e){say(e.message+' — aucune donnée locale n’a été supprimée.');if(e.message.includes('401')||e.message.includes('403'))sessionStorage.removeItem('pitou-github-token')}finally{if(direct)direct.disabled=false}
 }
 let direct=document.getElementById('publishDirectBtn');if(!direct){direct=document.createElement('button');direct.type='button';direct.id='publishDirectBtn';direct.className='admin-primary';direct.textContent='Mettre en ligne sur le site';actions.insertBefore(direct,btn.nextSibling)}direct.onclick=publishGitHub;
-let connectBtn=document.getElementById('githubConnectBtn');if(!connectBtn){connectBtn=document.createElement('button');connectBtn.type='button';connectBtn.id='githubConnectBtn';connectBtn.textContent='Connexion GitHub';actions.appendChild(connectBtn)}connectBtn.onclick=connect;
-window.publishPitouToGitHub=publishGitHub;
+let connectBtn=document.getElementById('githubConnectBtn');if(!connectBtn){connectBtn=document.createElement('button');connectBtn.type='button';connectBtn.id='githubConnectBtn';connectBtn.textContent='Connexion GitHub';actions.appendChild(connectBtn)}connectBtn.onclick=connect;window.publishPitouToGitHub=publishGitHub;
 })();
