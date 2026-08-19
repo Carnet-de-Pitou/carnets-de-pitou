@@ -10,7 +10,24 @@ function b64unicode(str){const bytes=new TextEncoder().encode(str);let bin='';fo
 function token(){return sessionStorage.getItem('pitou-github-token')||''}
 function connect(){const t=prompt('Colle ton jeton GitHub dédié aux Carnets. Il restera uniquement dans cet onglet et sera effacé quand tu fermes le navigateur.');if(!t)return false;sessionStorage.setItem('pitou-github-token',t.trim());say('GitHub connecté pour cette session.');return true}
 async function api(url,options={}){const t=token();const r=await fetch(url,{...options,headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(t?{Authorization:'Bearer '+t}:{}),...(options.headers||{})}});if(!r.ok){let msg='Erreur GitHub '+r.status;try{const j=await r.json();if(j.message)msg+=' : '+j.message}catch{}throw new Error(msg)}return r.json()}
-async function publishGitHub(){if(!token()&&!connect())return;const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;say('Publication sur GitHub…');try{const current=await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}`);const body={message:'Publication depuis l’éditeur des Carnets',content:b64unicode(content()),sha:current.sha,branch:BRANCH};await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});window.PITOU_PUBLIC_LIBRARY=merged();localStorage.setItem('pitou-published','[]');say('Publié sur GitHub. Le site sera à jour après le déploiement GitHub Pages.');setTimeout(()=>location.reload(),2500)}catch(e){say(e.message+' — aucune donnée locale n’a été supprimée.');if(e.message.includes('401')||e.message.includes('403'))sessionStorage.removeItem('pitou-github-token')}finally{if(direct)direct.disabled=false}}
+async function publishGitHub(){
+ // Toujours enregistrer d'abord le texte actuellement ouvert dans l'éditeur.
+ // Cela évite de pousser une ancienne version de pitou-published vers GitHub.
+ const title=(document.getElementById('edTitle')?.value||'').trim();
+ const html=(document.getElementById('richEditor')?.textContent||'').trim();
+ if(!title){say('Ajoute un titre avant de mettre en ligne.');return}
+ if(!html){say('Le texte est vide.');return}
+ const before=localStorage.getItem('pitou-published')||'[]';
+ btn.click();
+ const after=localStorage.getItem('pitou-published')||'[]';
+ const slug=document.getElementById('edOriginalSlug')?.value||'';
+ const saved=localLibrary().some(x=>x&&x.slug===slug);
+ if(!saved){say('Publication annulée : le texte courant n’a pas été enregistré.');return}
+ if(!token()&&!connect())return;
+ const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;
+ say('Texte enregistré. Publication sur GitHub…');
+ try{const current=await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}`);const finalContent=content();const body={message:'Publication depuis l’éditeur des Carnets',content:b64unicode(finalContent),sha:current.sha,branch:BRANCH};await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});window.PITOU_PUBLIC_LIBRARY=merged();localStorage.setItem('pitou-published','[]');say('Publié. Le texte est maintenant envoyé sur GitHub ; GitHub Pages va actualiser le site.');setTimeout(()=>location.reload(),3500)}catch(e){say(e.message+' — aucune donnée locale n’a été supprimée.');if(e.message.includes('401')||e.message.includes('403'))sessionStorage.removeItem('pitou-github-token')}finally{if(direct)direct.disabled=false}
+}
 let direct=document.getElementById('publishDirectBtn');if(!direct){direct=document.createElement('button');direct.type='button';direct.id='publishDirectBtn';direct.className='admin-primary';direct.textContent='Mettre en ligne sur le site';actions.insertBefore(direct,btn.nextSibling)}direct.onclick=publishGitHub;
 let connectBtn=document.getElementById('githubConnectBtn');if(!connectBtn){connectBtn=document.createElement('button');connectBtn.type='button';connectBtn.id='githubConnectBtn';connectBtn.textContent='Connexion GitHub';actions.appendChild(connectBtn)}connectBtn.onclick=connect;
 window.publishPitouToGitHub=publishGitHub;
