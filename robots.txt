@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://carnet-de-pitou.github.io/carnets-de-pitou/sitemap.xml
