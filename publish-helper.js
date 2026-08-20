@@ -17,14 +17,17 @@ function token(){return sessionStorage.getItem('pitou-github-token')||''}
 function connect(){const t=prompt('Colle ton jeton GitHub dédié aux Carnets. Il restera uniquement dans cet onglet et sera effacé quand tu fermes le navigateur.');if(!t)return false;sessionStorage.setItem('pitou-github-token',t.trim());say('GitHub connecté pour cette session.');return true}
 async function api(url,options={}){const t=token();const r=await fetch(url,{...options,headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(t?{Authorization:'Bearer '+t}:{}),...(options.headers||{})}});if(!r.ok){let msg='Erreur GitHub '+r.status;try{const j=await r.json();if(j.message)msg+=' : '+j.message}catch{}throw new Error(msg)}return r.json()}
 async function readRemote(){const current=await api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}&_=${Date.now()}`);return{current,list:parseLibrary(decodeGithubText(current.content))}}
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`}
+function backupPayload(list,reason='manuel'){let drafts=[];try{drafts=JSON.parse(localStorage.getItem('pitou-drafts')||'[]')}catch{}return{format:'carnets-de-pitou-complet-v2',created_at:new Date().toISOString(),reason,published:list,drafts:Array.isArray(drafts)?drafts:[]}}
+function downloadBackup(list,reason='manuel'){const payload=backupPayload(list,reason),blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`carnets-de-pitou-sauvegarde-${stamp()}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+async function manualBackup(){if(!token()&&!connect())return;const b=document.getElementById('fullBackupBtn');if(b)b.disabled=true;say('Préparation de la sauvegarde complète…');try{const remote=await readRemote();downloadBackup(remote.list,'manuel');say('Sauvegarde complète téléchargée : '+remote.list.length+' texte(s) publiés + brouillons locaux.')}catch(e){say(e.message+' — sauvegarde non créée.')}finally{if(b)b.disabled=false}}
 async function publishGitHub(){
  const item=currentItem();if(!item.title){say('Ajoute un titre avant de mettre en ligne.');return}if(!plain(item.html)){say('Le texte est vide.');return}
  btn.click();if(!token()&&!connect())return;
  const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;say('Publication sécurisée de « '+item.title+' »…');
  try{
-  const before=await readRemote(),beforeSlugs=validList(before.list),beforeSet=new Set(beforeSlugs),existed=beforeSet.has(item.slug);
-  const finalLibrary=mergeInto(before.list,item),finalSlugs=validList(finalLibrary);
-  const expected=before.list.length+(existed?0:1);
+  const before=await readRemote();downloadBackup(before.list,'automatique-avant-publication');const beforeSlugs=validList(before.list),beforeSet=new Set(beforeSlugs),existed=beforeSet.has(item.slug);
+  const finalLibrary=mergeInto(before.list,item),finalSlugs=validList(finalLibrary),expected=before.list.length+(existed?0:1);
   if(finalLibrary.length!==expected)throw new Error('Sécurité : nombre de textes inattendu avant publication. Publication annulée.');
   if([...beforeSet].some(s=>!finalSlugs.includes(s)))throw new Error('Sécurité : un ancien texte disparaîtrait. Publication annulée.');
   const body={message:'Publication depuis l’éditeur des Carnets : '+item.title,content:b64unicode(content(finalLibrary)),sha:before.current.sha,branch:BRANCH};
@@ -34,10 +37,10 @@ async function publishGitHub(){
   if(!saved)throw new Error('ALERTE : le texte publié est absent de GitHub. N’ajoute rien d’autre.');
   if(after.list.length!==expected)throw new Error('ALERTE : le nombre de textes sur GitHub est incohérent après publication. N’ajoute rien d’autre.');
   if((saved.title||'')!==item.title||plain(saved.html||'')!==plain(item.html||''))throw new Error('ALERTE : GitHub ne contient pas exactement le texte envoyé. N’ajoute rien d’autre.');
-  window.PITOU_PUBLIC_LIBRARY=after.list;localStorage.setItem('pitou-published','[]');
-  say('Publié et vérifié : « '+item.title+' ». '+after.list.length+' texte(s) présents sur GitHub, aucun ancien texte perdu.');setTimeout(()=>location.reload(),3500)
+  window.PITOU_PUBLIC_LIBRARY=after.list;localStorage.setItem('pitou-published','[]');say('Publié et vérifié : « '+item.title+' ». Sauvegarde automatique créée avant modification. '+after.list.length+' texte(s) sur GitHub.');setTimeout(()=>location.reload(),4000)
  }catch(e){say(e.message+' — aucune donnée locale n’a été supprimée.');if(e.message.includes('401')||e.message.includes('403'))sessionStorage.removeItem('pitou-github-token')}finally{if(direct)direct.disabled=false}
 }
 let direct=document.getElementById('publishDirectBtn');if(!direct){direct=document.createElement('button');direct.type='button';direct.id='publishDirectBtn';direct.className='admin-primary';direct.textContent='Mettre en ligne sur le site';actions.insertBefore(direct,btn.nextSibling)}direct.onclick=publishGitHub;
+let backup=document.getElementById('fullBackupBtn');if(!backup){backup=document.createElement('button');backup.type='button';backup.id='fullBackupBtn';backup.textContent='Sauvegarder tous mes Carnets';actions.appendChild(backup)}backup.onclick=manualBackup;
 let connectBtn=document.getElementById('githubConnectBtn');if(!connectBtn){connectBtn=document.createElement('button');connectBtn.type='button';connectBtn.id='githubConnectBtn';connectBtn.textContent='Connexion GitHub';actions.appendChild(connectBtn)}connectBtn.onclick=connect;window.publishPitouToGitHub=publishGitHub;
 })();
