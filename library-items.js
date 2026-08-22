@@ -1,0 +1,1 @@
+window.PITOU_LIBRARY_ITEM_SLUGS = [];
