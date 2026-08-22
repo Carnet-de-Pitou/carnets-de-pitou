@@ -1,1 +1,1 @@
-window.PITOU_LIBRARY_ITEM_SLUGS = ["tranches-de-vies-et-tranches-de-lard","un-pere-et-sa-fille","bile-cornes-acier"];
+window.PITOU_LIBRARY_ITEM_SLUGS = ["tranches-de-vies-et-tranches-de-lard","un-pere-et-sa-fille","bile-cornes-acier","chronique-des-amants-maudits-romance"];
