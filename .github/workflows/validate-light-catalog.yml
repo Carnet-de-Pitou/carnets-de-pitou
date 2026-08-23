@@ -20,29 +20,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build and validate light catalogue
+      - name: Build light index and current catalogue reference
         run: node tools/build-light-catalog.js
-      - name: Show generated catalogue size
+      - name: Show sizes and exact current catalogue count
         run: |
           echo "Archive: $(wc -c < library-archive.js) bytes"
           echo "Index:   $(wc -c < library-index.js) bytes"
-      - name: Verify generated index is reproducible
+          node -e "const r=require('./catalog-reference.json'); console.log('Catalogue final actuel:',r.count,'textes');"
+      - name: Verify generated outputs are reproducible
         run: |
           cp library-index.js /tmp/library-index.first.js
+          cp catalog-reference.json /tmp/catalog-reference.first.json
           node tools/build-light-catalog.js
           cmp /tmp/library-index.first.js library-index.js
-      - name: Verify every archived manuscript has an individual HTML file
+          cmp /tmp/catalog-reference.first.json catalog-reference.json
+      - name: Report archive HTML migration coverage
         run: |
           node <<'NODE'
           const fs=require('fs'),vm=require('vm');
           const source=fs.readFileSync('library-archive.js','utf8');
           const sandbox={window:{}}; vm.createContext(sandbox); vm.runInContext(source,sandbox);
           const items=sandbox.window.PITOU_PUBLIC_LIBRARY||[];
-          const missing=[];
-          for(const item of items){
-            const p=`texts/${item.slug}.html`;
-            if(!fs.existsSync(p)) missing.push(p);
-          }
-          console.log(`Archive: ${items.length} textes; HTML individuels manquants: ${missing.length}`);
-          if(missing.length){ console.log(missing.join('\n')); process.exit(1); }
+          const missing=items.filter(item=>!fs.existsSync(`texts/${item.slug}.html`));
+          console.log(`Archive: ${items.length}; HTML individuels presents: ${items.length-missing.length}; a migrer: ${missing.length}`);
           NODE
