@@ -1,0 +1,33 @@
+name: Validate light catalogue
+
+on:
+  push:
+    branches:
+      - optimisation-phase2-catalogue
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-catalogue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and validate light catalogue
+        run: node tools/build-light-catalog.js
+      - name: Show generated catalogue size
+        run: |
+          echo "Archive: $(wc -c < library-archive.js) bytes"
+          echo "Index:   $(wc -c < library-index.js) bytes"
+      - name: Verify generated index is reproducible
+        run: |
+          cp library-index.js /tmp/library-index.first.js
+          node tools/build-light-catalog.js
+          cmp /tmp/library-index.first.js library-index.js
