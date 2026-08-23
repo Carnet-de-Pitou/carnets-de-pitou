@@ -31,3 +31,18 @@ jobs:
           cp library-index.js /tmp/library-index.first.js
           node tools/build-light-catalog.js
           cmp /tmp/library-index.first.js library-index.js
+      - name: Verify every archived manuscript has an individual HTML file
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const source=fs.readFileSync('library-archive.js','utf8');
+          const sandbox={window:{}}; vm.createContext(sandbox); vm.runInContext(source,sandbox);
+          const items=sandbox.window.PITOU_PUBLIC_LIBRARY||[];
+          const missing=[];
+          for(const item of items){
+            const p=`texts/${item.slug}.html`;
+            if(!fs.existsSync(p)) missing.push(p);
+          }
+          console.log(`Archive: ${items.length} textes; HTML individuels manquants: ${missing.length}`);
+          if(missing.length){ console.log(missing.join('\n')); process.exit(1); }
+          NODE
