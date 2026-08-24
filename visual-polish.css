@@ -7,5 +7,8 @@
 .subcategory-card .excerpt{color:#bca98d;font-style:italic;margin-top:4px}
 .subcategory-card .readmore{border-top:1px solid #8d6b4230;padding-top:11px;margin-top:15px}
 .paper .article p.pitou-dropcap:first-letter{float:left;font-size:3.25em;line-height:.78;padding:.12em .10em 0 0;color:#654a2d;font-family:Georgia,'Times New Roman',serif;text-shadow:0 1px 0 #fff6}
-@media(max-width:700px){.subcategory-card{padding:19px 18px 17px 22px}.subcategory-card h3{font-size:1.18rem;margin:7px 0 5px}.subcategory-card .meta{font-size:.68rem}.subcategory-card .excerpt{font-size:.92rem;line-height:1.42}.subcategory-card .readmore{margin-top:11px;padding-top:9px}.subcategory-card .vestige-year{right:13px;top:13px;font-size:.66rem;padding:3px 6px}.subcategory-card.has-vestige-year h3{padding-right:55px}.paper .article p.pitou-dropcap:first-letter{font-size:2.8em}}
+/* Accueil : appel à l'entrée un peu plus lisible sans changer l'identité */
+.enter{border-color:#b58b55;background:#1c120be8;box-shadow:0 8px 25px #000a,inset 0 0 0 1px #d2aa6b20}
+.enter:hover,.enter:focus-visible{background:#332114;border-color:#d0a76c;color:#fff0cf;outline:none}
+@media(max-width:700px){.hero{min-height:370px}.subcategory-card{padding:19px 18px 17px 22px}.subcategory-card h3{font-size:1.18rem;margin:7px 0 5px}.subcategory-card .meta{font-size:.68rem}.subcategory-card .excerpt{font-size:.92rem;line-height:1.42}.subcategory-card .readmore{margin-top:11px;padding-top:9px}.subcategory-card .vestige-year{right:13px;top:13px;font-size:.66rem;padding:3px 6px}.subcategory-card.has-vestige-year h3{padding-right:55px}.paper .article p.pitou-dropcap:first-letter{font-size:2.8em}}
 @media(prefers-reduced-motion:reduce){.shelf,.card,.enter{transition:none!important}.shelf:hover,.card:hover,.card:focus-visible,.enter:hover{transform:none!important}}
