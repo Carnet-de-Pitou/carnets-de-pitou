@@ -1,0 +1,11 @@
+/* Finitions visuelles légères — aucune ressource externe */
+.subcategory-card{position:relative;border-left:5px solid #765737;background:linear-gradient(112deg,#17100bea 0%,#342317ee 14%,#20160fed 58%,#110c08f4 100%);box-shadow:0 14px 30px #0009,inset 12px 0 20px #0004}
+.subcategory-card:before{content:"";position:absolute;left:8px;top:13px;bottom:13px;width:1px;background:#c09a6040;box-shadow:4px 0 0 #0005}
+.subcategory-card .vestige-year{position:absolute;right:18px;top:17px;color:#c2a16d;font-size:.72rem;letter-spacing:.16em;border:1px solid #9c794b55;padding:4px 7px;background:#120c08aa}
+.subcategory-card.has-vestige-year h3{padding-right:62px}
+.subcategory-card .meta{padding-left:2px}
+.subcategory-card .excerpt{color:#bca98d;font-style:italic;margin-top:4px}
+.subcategory-card .readmore{border-top:1px solid #8d6b4230;padding-top:11px;margin-top:15px}
+.paper .article p.pitou-dropcap:first-letter{float:left;font-size:3.25em;line-height:.78;padding:.12em .10em 0 0;color:#654a2d;font-family:Georgia,'Times New Roman',serif;text-shadow:0 1px 0 #fff6}
+@media(max-width:700px){.subcategory-card{padding:19px 18px 17px 22px}.subcategory-card h3{font-size:1.18rem;margin:7px 0 5px}.subcategory-card .meta{font-size:.68rem}.subcategory-card .excerpt{font-size:.92rem;line-height:1.42}.subcategory-card .readmore{margin-top:11px;padding-top:9px}.subcategory-card .vestige-year{right:13px;top:13px;font-size:.66rem;padding:3px 6px}.subcategory-card.has-vestige-year h3{padding-right:55px}.paper .article p.pitou-dropcap:first-letter{font-size:2.8em}}
+@media(prefers-reduced-motion:reduce){.shelf,.card,.enter{transition:none!important}.shelf:hover,.card:hover,.card:focus-visible,.enter:hover{transform:none!important}}
