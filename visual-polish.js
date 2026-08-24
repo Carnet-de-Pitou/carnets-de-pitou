@@ -12,9 +12,11 @@ const YEARS={
 "Itinéraire d'un enfant de putain ~~ Black Desert Online":"2014",
 "Magie, collocation et petites emmerdes ~~ Black Desert Online":"2017"
 };
-const cards=document.getElementById('cards'),article=document.getElementById('article');
+const cards=document.getElementById('cards'),article=document.getElementById('article'),reader=document.getElementById('reader');
 function decorateCards(){if(!cards)return;cards.querySelectorAll('.subcategory-card').forEach(card=>{if(card.querySelector('.vestige-year'))return;let cat=card.dataset.subcat||'';if(!cat){const title=(card.querySelector('h3')?.textContent||'').trim();cat=Object.keys(YEARS).find(k=>k.split('~~')[0].trim().replace(/\.+$/,'')===title.replace(/\.+$/,''))||''}const year=YEARS[cat];if(!year)return;card.classList.add('has-vestige-year');const badge=document.createElement('span');badge.className='vestige-year';badge.textContent=year;badge.setAttribute('aria-label','Année '+year);card.appendChild(badge)})}
 function decorateArticle(){if(!article)return;article.querySelectorAll('.pitou-dropcap').forEach(p=>p.classList.remove('pitou-dropcap'));const p=[...article.querySelectorAll('p')].find(x=>!x.classList.contains('subtitle')&&(x.textContent||'').trim().length>0);if(p)p.classList.add('pitou-dropcap')}
+function addBackToTop(){if(!reader||reader.querySelector('.reader-top'))return;const btn=document.createElement('button');btn.type='button';btn.className='reader-top';btn.textContent='↑ Haut';btn.setAttribute('aria-label','Retour en haut du texte');btn.addEventListener('click',()=>reader.scrollTo({top:0,behavior:'smooth'}));reader.appendChild(btn);const toggle=()=>btn.classList.toggle('visible',reader.scrollTop>500);reader.addEventListener('scroll',toggle,{passive:true});toggle()}
 if(cards){new MutationObserver(decorateCards).observe(cards,{childList:true,subtree:true});decorateCards()}
 if(article){new MutationObserver(decorateArticle).observe(article,{childList:true,subtree:true});decorateArticle()}
+addBackToTop();
 })();
