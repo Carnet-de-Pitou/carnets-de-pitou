@@ -36,11 +36,21 @@
     const nodes=[...cards.querySelectorAll('.card[data-slug]')];
     nodes.filter(n=>n.dataset.slug===LEGACY_SLUG).forEach(n=>n.remove());
     const sortable=nodes.filter(n=>n.dataset.slug!==LEGACY_SLUG);
-    sortable.sort((a,b)=>rank(a.querySelector('h3')?.textContent)-rank(b.querySelector('h3')?.textContent));
-    sortable.forEach(n=>cards.appendChild(n));
+    const ordered=[...sortable].sort((a,b)=>rank(a.querySelector('h3')?.textContent)-rank(b.querySelector('h3')?.textContent));
+    // Ne touche au DOM que si l'ordre est réellement incorrect.
+    // Cela évite la boucle MutationObserver -> appendChild -> MutationObserver.
+    const changed=ordered.some((node,i)=>node!==sortable[i]);
+    if(changed)ordered.forEach(n=>cards.appendChild(n));
     const visible=cards.querySelectorAll('.card[data-slug]').length;
-    count.textContent=`${visible} texte${visible>1?'s':''} · ${CATEGORY}`;
+    const expected=`${visible} texte${visible>1?'s':''} · ${CATEGORY}`;
+    if(count.textContent!==expected)count.textContent=expected;
   }
-  new MutationObserver(()=>queueMicrotask(reorder)).observe(cards,{childList:true,subtree:false});
+  let scheduled=false;
+  const observer=new MutationObserver(()=>{
+    if(scheduled)return;
+    scheduled=true;
+    requestAnimationFrame(()=>{scheduled=false;reorder()});
+  });
+  observer.observe(cards,{childList:true,subtree:false});
   reorder();
 })();
