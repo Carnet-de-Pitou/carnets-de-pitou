@@ -5,7 +5,6 @@
   const CATEGORY='Journal de la Reconquête';
   const LEGACY_SLUG='journal-de-la-reconquete';
 
-  // Masque uniquement le condensé public, sans supprimer son fichier source.
   if(Array.isArray(window.TEXTS)){
     for(let i=window.TEXTS.length-1;i>=0;i--){
       if(window.TEXTS[i]?.slug===LEGACY_SLUG) window.TEXTS.splice(i,1);
@@ -29,16 +28,16 @@
     if(/^pr[eé]ambule\b/i.test(s))return 0;
     const m=s.match(/chap[iî]tre\s+(\d+|[ivxlcdm]+)/i);
     if(!m)return 10000;
-    return /^\d+$/.test(m[1])?Number(m[1]):romanToInt(m[1])??10000;
+    if(/^\d+$/.test(m[1]))return Number(m[1]);
+    const n=romanToInt(m[1]);
+    return n===null?10000:n;
   }
   function reorder(){
     if(!count.textContent.includes(CATEGORY))return;
     const nodes=[...cards.querySelectorAll('.card[data-slug]')];
     nodes.filter(n=>n.dataset.slug===LEGACY_SLUG).forEach(n=>n.remove());
-    const sortable=nodes.filter(n=>n.dataset.slug!==LEGACY_SLUG);
+    const sortable=[...cards.querySelectorAll('.card[data-slug]')];
     const ordered=[...sortable].sort((a,b)=>rank(a.querySelector('h3')?.textContent)-rank(b.querySelector('h3')?.textContent));
-    // Ne touche au DOM que si l'ordre est réellement incorrect.
-    // Cela évite la boucle MutationObserver -> appendChild -> MutationObserver.
     const changed=ordered.some((node,i)=>node!==sortable[i]);
     if(changed)ordered.forEach(n=>cards.appendChild(n));
     const visible=cards.querySelectorAll('.card[data-slug]').length;
