@@ -1,4 +1,5 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
+// Générateur des pages SEO publiques depuis les textes individualisés.
 const root=path.resolve(__dirname,'..'),out=path.join(root,'_site'),base='https://carnet-de-pitou.github.io/carnets-de-pitou';
 fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
 function copy(src,dst){fs.cpSync(src,dst,{recursive:true,filter:p=>!p.includes(`${path.sep}.git${path.sep}`)&&!p.includes(`${path.sep}_site${path.sep}`)});}
