@@ -2,8 +2,9 @@
    Le condensé historique reste stocké dans texts/journal-de-la-reconquete.js,
    mais n'est plus exposé dans la bibliothèque publique. */
 (()=>{
-  const CATEGORY='Journal de la Reconquête';
   const LEGACY_SLUG='journal-de-la-reconquete';
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const isJournal=s=>norm(s).includes('journal de la reconquete');
 
   if(Array.isArray(window.TEXTS)){
     for(let i=window.TEXTS.length-1;i>=0;i--){
@@ -26,32 +27,46 @@
   function rankFromText(raw){
     const s=String(raw||'').replace(/\u00a0/g,' ').trim();
     if(!s)return 10000;
-    /* Le préambule peut être nommé "Préambule", "Chapitre 0", "Chapitre 0 : Préambule", etc. */
-    if(/\bpr[eé]ambule\b/i.test(s))return 0;
+    /* Le préambule est toujours le chapitre zéro, quel que soit son libellé exact. */
+    if(/\bpr[eé]ambule\b/i.test(s)||/\bprologue\b/i.test(s))return 0;
     const m=s.match(/chap[iî]tre\s*(?:n[°ºo]\s*)?(0|\d+|[ivxlcdm]+)\b/i);
     if(!m)return 10000;
     if(/^\d+$/.test(m[1]))return Number(m[1]);
     const n=romanToInt(m[1]);
     return n===null?10000:n;
   }
+  function itemFor(node){
+    const slug=node?.dataset?.slug;
+    return (window.TEXTS||[]).find(t=>t?.slug===slug)||null;
+  }
   function cardRank(node){
-    /* Ne dépend plus uniquement du H3 : certains chapitres issus de la bibliothèque
-       portent l'indication de chapitre dans d'autres champs de la carte. */
-    return rankFromText(node?.textContent||'');
+    const t=itemFor(node);
+    /* On lit d'abord les métadonnées réelles du texte, puis la carte affichée.
+       Ainsi le tri fonctionne même si "Chapitre II" n'est pas dans le H3. */
+    const source=t?`${t.title||''} ${t.subtitle||''} ${t.series||''} ${t.excerpt||''} ${t.slug||''}`:'';
+    const rank=rankFromText(source);
+    return rank!==10000?rank:rankFromText(node?.textContent||'');
+  }
+  function journalIsOpen(){
+    if(isJournal(count.textContent))return true;
+    return [...cards.querySelectorAll('.card[data-slug]')].some(n=>{
+      const t=itemFor(n);
+      return t&&isJournal(t.category);
+    });
   }
   function reorder(){
-    if(!count.textContent.includes(CATEGORY))return;
-    const nodes=[...cards.querySelectorAll('.card[data-slug]')];
-    nodes.filter(n=>n.dataset.slug===LEGACY_SLUG).forEach(n=>n.remove());
-    const sortable=[...cards.querySelectorAll('.card[data-slug]')];
+    if(!journalIsOpen())return;
+    cards.querySelectorAll(`.card[data-slug="${LEGACY_SLUG}"]`).forEach(n=>n.remove());
+    const sortable=[...cards.querySelectorAll('.card[data-slug]')].filter(n=>{
+      const t=itemFor(n);
+      return !t||isJournal(t.category);
+    });
     const indexed=sortable.map((node,index)=>({node,index,rank:cardRank(node)}));
     indexed.sort((a,b)=>a.rank-b.rank||a.index-b.index);
-    const ordered=indexed.map(x=>x.node);
-    const changed=ordered.some((node,i)=>node!==sortable[i]);
-    if(changed)ordered.forEach(n=>cards.appendChild(n));
+    indexed.forEach(x=>cards.appendChild(x.node));
     const visible=cards.querySelectorAll('.card[data-slug]').length;
-    const expected=`${visible} texte${visible>1?'s':''} · ${CATEGORY}`;
-    if(count.textContent!==expected)count.textContent=expected;
+    const category=(indexed.map(x=>itemFor(x.node)?.category).find(Boolean))||'Journal de la Reconquête';
+    count.textContent=`${visible} texte${visible>1?'s':''} · ${category}`;
   }
   let scheduled=false;
   const observer=new MutationObserver(()=>{
