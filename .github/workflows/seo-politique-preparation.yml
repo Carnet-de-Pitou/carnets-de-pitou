@@ -1,0 +1,58 @@
+name: SEO Politique preparation
+
+on:
+  push:
+    branches:
+      - seo-politique-preparation
+
+permissions:
+  contents: write
+
+jobs:
+  individualize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-politique-preparation
+      - name: Extract Politique manuscripts exactly from archive
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const vm = require('vm');
+          const box = { window: {} };
+          vm.createContext(box);
+          vm.runInContext(fs.readFileSync('library-archive.js', 'utf8'), box, { filename: 'library-archive.js' });
+          const items = box.window.PITOU_PUBLIC_LIBRARY || [];
+          const slugs = ['nuremberg-2021', 'l-hopital-se-souvient'];
+          for (const slug of slugs) {
+            const item = items.find(x => x && x.slug === slug);
+            if (!item) throw new Error(`Archive item missing: ${slug}`);
+            if (item.category !== 'Politique') throw new Error(`Unexpected category for ${slug}: ${item.category}`);
+            fs.writeFileSync(`texts/${slug}.js`, `window.PITOU_LIBRARY_ITEM = ${JSON.stringify(item)};\n`, 'utf8');
+          }
+          console.log('Politique extracted:', slugs.join(', '));
+          NODE
+      - name: Validate generated manuscripts
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          for(const slug of ['nuremberg-2021','l-hopital-se-souvient']){
+            const box={window:{}}; vm.createContext(box);
+            vm.runInContext(fs.readFileSync(`texts/${slug}.js`,'utf8'),box);
+            const item=box.window.PITOU_LIBRARY_ITEM;
+            if(!item || item.slug!==slug || item.category!=='Politique' || typeof item.html!=='string' || !item.html.length) process.exit(1);
+          }
+          NODE
+      - name: Commit generated files if needed
+        run: |
+          if git diff --quiet -- texts/nuremberg-2021.js texts/l-hopital-se-souvient.js && git ls-files --error-unmatch texts/nuremberg-2021.js texts/l-hopital-se-souvient.js >/dev/null 2>&1; then
+            echo "Politique files already present."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add texts/nuremberg-2021.js texts/l-hopital-se-souvient.js
+          git commit -m "SEO Politique: individualiser les textes"
+          git push origin HEAD:seo-politique-preparation
