@@ -1,0 +1,32 @@
+name: Audit final postmerge
+
+on:
+  push:
+    branches:
+      - audit-final-postmerge
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify corpus integrity
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm'),path=require('path');
+          function load(file,names){if(!fs.existsSync(file))return[];const b={window:{}};b.window.window=b.window;vm.createContext(b);try{vm.runInContext(fs.readFileSync(file,'utf8'),b,{timeout:30000});}catch(e){return[];}for(const n of names){if(Array.isArray(b.window[n]))return b.window[n];}return[];}
+          const sources=[['library-archive.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],['library-baseline-20260822.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],['library.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],['data.js',['TEXTS']]];
+          const corpus=new Map();for(const [f,n] of sources){for(const x of load(f,n)){if(x&&x.slug&&!corpus.has(x.slug))corpus.set(x.slug,x);}}
+          const indiv=new Map();for(const f of fs.readdirSync('texts').filter(x=>x.endsWith('.js'))){const b={window:{}};vm.createContext(b);try{vm.runInContext(fs.readFileSync(path.join('texts',f),'utf8'),b);const x=b.window.PITOU_LIBRARY_ITEM;if(x&&x.slug){indiv.set(x.slug,x);if(!corpus.has(x.slug))corpus.set(x.slug,x);}}catch(e){}}
+          const missing=[...corpus.values()].filter(x=>!indiv.has(x.slug));
+          const nonJournal=missing.filter(x=>x.category!=='Journal de la Reconquête');
+          console.log('CORPUS',corpus.size);console.log('INDIVIDUAL',indiv.size);console.log('MISSING',missing.length);for(const x of missing)console.log('MISSING_ITEM',x.slug,'::',x.category);
+          if(corpus.size!==179)throw new Error(`Corpus attendu 179, trouve ${corpus.size}`);
+          if(indiv.size!==172)throw new Error(`Individualises attendus 172, trouve ${indiv.size}`);
+          if(missing.length!==7)throw new Error(`Manquants attendus 7, trouve ${missing.length}`);
+          if(nonJournal.length)throw new Error(`Manquants hors Journal: ${nonJournal.map(x=>x.slug).join(',')}`);
+          console.log('AUDIT_OK');
+          NODE
