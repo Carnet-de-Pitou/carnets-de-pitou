@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: seo-global-inventory-179
-      - name: Inventory baseline and current sources
+      - name: Inventory complete union
         run: |
           node <<'NODE'
           const fs=require('fs'),vm=require('vm');
@@ -26,25 +26,37 @@ jobs:
             for(const k of ['PITOU_PUBLIC_LIBRARY','TEXTS']) if(Array.isArray(b.window[k])) return b.window[k];
             return [];
           }
-          const baseline=load('library-baseline-20260822.js');
-          const archive=load('library-archive.js');
-          console.log('BASELINE_TOTAL',baseline.length);
-          console.log('ARCHIVE_TOTAL',archive.length);
+          const sources=[
+            ['baseline',load('library-baseline-20260822.js')],
+            ['archive',load('library-archive.js')],
+            ['data',load('data.js')]
+          ];
+          for(const [name,arr] of sources) console.log('SOURCE_TOTAL',name,arr.length);
+          const bySlug=new Map();
+          for(const [name,arr] of sources){
+            for(const x of arr){
+              if(!x||!x.slug) continue;
+              if(!bySlug.has(x.slug)) bySlug.set(x.slug,{item:x,sources:[name]});
+              else bySlug.get(x.slug).sources.push(name);
+            }
+          }
+          console.log('UNION_UNIQUE_SLUGS',bySlug.size);
           const counts=new Map();
-          for(const x of baseline){const c=String(x&&x.category||'').trim()||'(sans categorie)';counts.set(c,(counts.get(c)||0)+1)}
-          console.log('BASELINE_CATEGORIES');
+          for(const {item} of bySlug.values()){
+            const c=String(item.category||'').trim()||'(sans categorie)';
+            counts.set(c,(counts.get(c)||0)+1);
+          }
+          console.log('UNION_CATEGORIES');
           for(const [c,n] of [...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0],'fr'))) console.log(`${n}\t${c}`);
-          const slugs=baseline.map(x=>x&&x.slug).filter(Boolean);
-          console.log('BASELINE_UNIQUE_SLUGS',new Set(slugs).size);
-          const dup=[...new Set(slugs.filter((s,i)=>slugs.indexOf(s)!==i))];
-          console.log('DUPLICATE_SLUGS',dup.length,dup.join(','));
           const textFiles=fs.existsSync('texts')?fs.readdirSync('texts').filter(f=>f.endsWith('.js')):[];
-          console.log('INDIVIDUAL_JS_COUNT',textFiles.length);
           const present=new Set(textFiles.map(f=>f.replace(/\.js$/,'')));
-          const missing=baseline.filter(x=>x&&x.slug&&!present.has(x.slug));
-          console.log('MISSING_FROM_TEXTS',missing.length);
+          const missing=[...bySlug.values()].map(v=>v.item).filter(x=>!present.has(x.slug));
+          console.log('INDIVIDUAL_JS_COUNT',textFiles.length);
+          console.log('MISSING_UNION_FROM_TEXTS',missing.length);
           const missCounts=new Map();
           for(const x of missing){const c=String(x.category||'').trim()||'(sans categorie)';missCounts.set(c,(missCounts.get(c)||0)+1)}
-          console.log('MISSING_BY_CATEGORY');
+          console.log('MISSING_UNION_BY_CATEGORY');
           for(const [c,n] of [...missCounts.entries()].sort((a,b)=>a[0].localeCompare(b[0],'fr'))) console.log(`${n}\t${c}`);
+          console.log('MISSING_SLUGS');
+          for(const x of missing.sort((a,b)=>String(a.category).localeCompare(String(b.category),'fr')||String(a.title).localeCompare(String(b.title),'fr'))) console.log(`${x.category}\t${x.slug}\t${x.title}`);
           NODE
