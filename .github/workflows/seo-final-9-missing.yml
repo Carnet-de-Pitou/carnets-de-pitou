@@ -1,0 +1,52 @@
+name: SEO final 9 missing
+
+on:
+  push:
+    branches:
+      - seo-final-9-missing
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Extract missing historical texts without overwrite
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const wanted=['15-7-sur-la-colere','apaisement','au-beau-mlieu-du-guet','fils-de-pute','impuissance-eloge-de-la-mediocrite','jai-pas-les-mots','espoir','chroniques-st-louis','dressez-vous'];
+          const b={window:{}};b.window.window=b.window;vm.createContext(b);
+          vm.runInContext(fs.readFileSync('data.js','utf8'),b,{filename:'data.js'});
+          const arrays=Object.values(b.window).filter(Array.isArray);
+          const items=arrays.flat();
+          for(const slug of wanted){
+            const dest=`texts/${slug}.js`;
+            if(fs.existsSync(dest)) throw new Error(`REFUS ECRASEMENT: ${dest} existe deja`);
+            const matches=items.filter(x=>x&&x.slug===slug);
+            if(matches.length!==1) throw new Error(`Slug ${slug}: ${matches.length} occurrence(s), attendu 1`);
+            const item=matches[0];
+            if(!['Social','Politique','Actualités'].includes(item.category)) throw new Error(`Categorie inattendue ${slug}: ${item.category}`);
+            if(typeof item.html!=='string'||!item.html.length) throw new Error(`Contenu HTML manquant: ${slug}`);
+            fs.writeFileSync(dest,`window.PITOU_LIBRARY_ITEM = ${JSON.stringify(item)};\n`,'utf8');
+            console.log('ADD',slug,'::',item.title,'::',item.category);
+          }
+          NODE
+      - name: Validate exact extraction
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const wanted=['15-7-sur-la-colere','apaisement','au-beau-mlieu-du-guet','fils-de-pute','impuissance-eloge-de-la-mediocrite','jai-pas-les-mots','espoir','chroniques-st-louis','dressez-vous'];
+          for(const slug of wanted){const b={window:{}};vm.createContext(b);vm.runInContext(fs.readFileSync(`texts/${slug}.js`,'utf8'),b);const x=b.window.PITOU_LIBRARY_ITEM;if(!x||x.slug!==slug||!x.html)throw new Error(`Validation failed ${slug}`)}
+          console.log('VALIDATED',wanted.length);
+          NODE
+      - name: Commit only new files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add texts/15-7-sur-la-colere.js texts/apaisement.js texts/au-beau-mlieu-du-guet.js texts/fils-de-pute.js texts/impuissance-eloge-de-la-mediocrite.js texts/jai-pas-les-mots.js texts/espoir.js texts/chroniques-st-louis.js texts/dressez-vous.js
+          test "$(git diff --cached --name-only | wc -l)" -eq 9
+          git commit -m "SEO final: individualiser 9 textes historiques"
+          git push origin HEAD:seo-final-9-missing
