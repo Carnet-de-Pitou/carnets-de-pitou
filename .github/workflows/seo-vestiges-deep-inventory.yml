@@ -1,0 +1,57 @@
+name: SEO Vestiges deep inventory
+
+on:
+  push:
+    branches:
+      - seo-vestiges-deep-inventory
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-vestiges-deep-inventory
+      - name: Deep inventory
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const files=['library.js','library-archive.js','library-items.js','data.js'];
+          const needles=['découvrir le monde','decouvrir le monde','lineage 2','hypérion','hyperion','ô liberté','o liberte'];
+          const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+          for(const file of files){
+            if(!fs.existsSync(file)) continue;
+            const src=fs.readFileSync(file,'utf8');
+            console.log(`\n===== FILE ${file} size=${src.length} =====`);
+            for(const n of needles){
+              const nn=norm(n), ss=norm(src);
+              let pos=0,count=0;
+              while((pos=ss.indexOf(nn,pos))!==-1){count++;pos+=nn.length;}
+              if(count) console.log(`needle ${n} => ${count}`);
+            }
+            const box={window:{}}; box.window.window=box.window;
+            try{vm.createContext(box);vm.runInContext(src,box,{timeout:20000});}
+            catch(e){console.log('VMERR',file,e.message);continue;}
+            console.log('window keys:',Object.keys(box.window).join(' | '));
+            for(const [k,v] of Object.entries(box.window)){
+              if(!Array.isArray(v)) continue;
+              console.log(`ARRAY ${k} len=${v.length}`);
+              let matches=[];
+              for(let i=0;i<v.length;i++){
+                const x=v[i];
+                let s=''; try{s=JSON.stringify(x);}catch{}
+                const ns=norm(s);
+                if(needles.some(n=>ns.includes(norm(n)))) matches.push({i,x});
+              }
+              console.log(`MATCHES ${k}: ${matches.length}`);
+              for(const m of matches.slice(0,100)){
+                const x=m.x||{};
+                console.log(JSON.stringify({i:m.i,keys:Object.keys(x),slug:x.slug,title:x.title,category:x.category,subcategory:x.subcategory,section:x.section,parent:x.parent,group:x.group,series:x.series,path:x.path,breadcrumb:x.breadcrumbs||x.breadcrumb}));
+              }
+            }
+          }
+          NODE
