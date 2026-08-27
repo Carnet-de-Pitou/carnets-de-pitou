@@ -16,42 +16,29 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: seo-vestiges-deep-inventory
-      - name: Deep inventory
+      - name: Reproduce real site merge
         run: |
           node <<'NODE'
           const fs=require('fs'),vm=require('vm');
-          const files=['library.js','library-archive.js','library-items.js','data.js'];
-          const needles=['découvrir le monde','decouvrir le monde','lineage 2','hypérion','hyperion','ô liberté','o liberte'];
-          const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-          for(const file of files){
-            if(!fs.existsSync(file)) continue;
-            const src=fs.readFileSync(file,'utf8');
-            console.log(`\n===== FILE ${file} size=${src.length} =====`);
-            for(const n of needles){
-              const nn=norm(n), ss=norm(src);
-              let pos=0,count=0;
-              while((pos=ss.indexOf(nn,pos))!==-1){count++;pos+=nn.length;}
-              if(count) console.log(`needle ${n} => ${count}`);
-            }
-            const box={window:{}}; box.window.window=box.window;
-            try{vm.createContext(box);vm.runInContext(src,box,{timeout:20000});}
-            catch(e){console.log('VMERR',file,e.message);continue;}
-            console.log('window keys:',Object.keys(box.window).join(' | '));
-            for(const [k,v] of Object.entries(box.window)){
-              if(!Array.isArray(v)) continue;
-              console.log(`ARRAY ${k} len=${v.length}`);
-              let matches=[];
-              for(let i=0;i<v.length;i++){
-                const x=v[i];
-                let s=''; try{s=JSON.stringify(x);}catch{}
-                const ns=norm(s);
-                if(needles.some(n=>ns.includes(norm(n)))) matches.push({i,x});
-              }
-              console.log(`MATCHES ${k}: ${matches.length}`);
-              for(const m of matches.slice(0,100)){
-                const x=m.x||{};
-                console.log(JSON.stringify({i:m.i,keys:Object.keys(x),slug:x.slug,title:x.title,category:x.category,subcategory:x.subcategory,section:x.section,parent:x.parent,group:x.group,series:x.series,path:x.path,breadcrumb:x.breadcrumbs||x.breadcrumb}));
-              }
-            }
+          const run=file=>{const box={window:{}};box.window.window=box.window;vm.createContext(box);vm.runInContext(fs.readFileSync(file,'utf8'),box,{timeout:30000});return box.window};
+          const d=run('data.js');
+          let merged=[];
+          for(const file of ['library-archive.js','library-baseline-20260822.js','library.js']){
+            const w=run(file); const arr=w.PITOU_PUBLIC_LIBRARY||[];
+            const m=new Map(merged.map(t=>[t.slug,t])); for(const t of arr) if(t&&t.slug)m.set(t.slug,t); merged=[...m.values()];
+            console.log(`${file}: ${arr.length} items; merged=${merged.length}`);
           }
+          const m=new Map((d.TEXTS||[]).map(t=>[t.slug,t])); for(const t of merged) if(t&&t.slug)m.set(t.slug,{...(m.get(t.slug)||{}),...t});
+          const texts=[...m.values()];
+          const parent='Découvrir le monde ~~ Lineage 2, Hypérion';
+          const pattern=/^Découvrir le monde\s+(?:[IVXLCDM]+|\d+)$/i;
+          const all=texts.filter(t=>t.category===parent);
+          const series=all.filter(t=>pattern.test((t.title||'').trim()));
+          const general=all.filter(t=>!pattern.test((t.title||'').trim()));
+          console.log(`TOTAL parent=${all.length}`);
+          console.log(`SERIES=${series.length}`);
+          for(const t of series) console.log(`SERIES\t${t.slug}\t${t.title}\t${t.date||''}`);
+          console.log(`GENERAL=${general.length}`);
+          for(const t of general) console.log(`GENERAL\t${t.slug}\t${t.title}\t${t.date||''}`);
+          console.log('VESTIGES GROUPS',JSON.stringify(d.CATEGORY_GROUPS&&d.CATEGORY_GROUPS['Vestiges Rôleplay']||[]));
           NODE
