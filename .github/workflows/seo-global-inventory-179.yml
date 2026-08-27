@@ -16,47 +16,45 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: seo-global-inventory-179
-      - name: Inventory complete union
+      - name: Locate remaining texts
         run: |
           node <<'NODE'
           const fs=require('fs'),vm=require('vm');
-          function load(f){
+          function inspectFile(f){
             const b={window:{}}; b.window.window=b.window; vm.createContext(b);
-            vm.runInContext(fs.readFileSync(f,'utf8'),b,{timeout:30000});
-            for(const k of ['PITOU_PUBLIC_LIBRARY','TEXTS']) if(Array.isArray(b.window[k])) return b.window[k];
-            return [];
-          }
-          const sources=[
-            ['baseline',load('library-baseline-20260822.js')],
-            ['archive',load('library-archive.js')],
-            ['data',load('data.js')]
-          ];
-          for(const [name,arr] of sources) console.log('SOURCE_TOTAL',name,arr.length);
-          const bySlug=new Map();
-          for(const [name,arr] of sources){
-            for(const x of arr){
-              if(!x||!x.slug) continue;
-              if(!bySlug.has(x.slug)) bySlug.set(x.slug,{item:x,sources:[name]});
-              else bySlug.get(x.slug).sources.push(name);
+            try{vm.runInContext(fs.readFileSync(f,'utf8'),b,{timeout:30000});}catch(e){console.log('LOADERR',f,e.message);return []}
+            console.log('SOURCE',f);
+            const out=[];
+            for(const [k,v] of Object.entries(b.window)){
+              if(Array.isArray(v)){
+                console.log('ARRAY',k,v.length);
+                for(const x of v) if(x&&x.slug) out.push(x);
+              }
             }
+            return out;
           }
-          console.log('UNION_UNIQUE_SLUGS',bySlug.size);
+          const named=[];
+          for(const f of ['library-baseline-20260822.js','library-archive.js','data.js','library.js','library-items.js']){
+            if(fs.existsSync(f)) for(const x of inspectFile(f)) named.push([f,x]);
+          }
+          const union=new Map();
+          for(const [f,x] of named){if(!union.has(x.slug)) union.set(x.slug,{item:x,sources:[f]});else union.get(x.slug).sources.push(f)}
+          console.log('NAMED_UNION',union.size);
+          const individual=[];
+          for(const f of fs.readdirSync('texts').filter(f=>f.endsWith('.js'))){
+            const b={window:{}};b.window.window=b.window;vm.createContext(b);
+            try{vm.runInContext(fs.readFileSync('texts/'+f,'utf8'),b,{timeout:5000});}catch(e){continue}
+            const x=b.window.PITOU_LIBRARY_ITEM;
+            if(x&&x.slug) individual.push(x);
+          }
+          console.log('INDIVIDUAL_PARSED',individual.length);
+          const extras=[];
+          for(const x of individual){if(!union.has(x.slug)){extras.push(x);union.set(x.slug,{item:x,sources:['individual']})}}
+          console.log('INDIVIDUAL_EXTRAS',extras.length);
+          for(const x of extras) console.log('EXTRA',x.category,'\t',x.slug,'\t',x.title);
+          console.log('FINAL_UNION_WITH_INDIVIDUAL',union.size);
           const counts=new Map();
-          for(const {item} of bySlug.values()){
-            const c=String(item.category||'').trim()||'(sans categorie)';
-            counts.set(c,(counts.get(c)||0)+1);
-          }
-          console.log('UNION_CATEGORIES');
+          for(const {item} of union.values()){const c=String(item.category||'').trim()||'(sans categorie)';counts.set(c,(counts.get(c)||0)+1)}
+          console.log('FINAL_CATEGORIES');
           for(const [c,n] of [...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0],'fr'))) console.log(`${n}\t${c}`);
-          const textFiles=fs.existsSync('texts')?fs.readdirSync('texts').filter(f=>f.endsWith('.js')):[];
-          const present=new Set(textFiles.map(f=>f.replace(/\.js$/,'')));
-          const missing=[...bySlug.values()].map(v=>v.item).filter(x=>!present.has(x.slug));
-          console.log('INDIVIDUAL_JS_COUNT',textFiles.length);
-          console.log('MISSING_UNION_FROM_TEXTS',missing.length);
-          const missCounts=new Map();
-          for(const x of missing){const c=String(x.category||'').trim()||'(sans categorie)';missCounts.set(c,(missCounts.get(c)||0)+1)}
-          console.log('MISSING_UNION_BY_CATEGORY');
-          for(const [c,n] of [...missCounts.entries()].sort((a,b)=>a[0].localeCompare(b[0],'fr'))) console.log(`${n}\t${c}`);
-          console.log('MISSING_SLUGS');
-          for(const x of missing.sort((a,b)=>String(a.category).localeCompare(String(b.category),'fr')||String(a.title).localeCompare(String(b.title),'fr'))) console.log(`${x.category}\t${x.slug}\t${x.title}`);
           NODE
