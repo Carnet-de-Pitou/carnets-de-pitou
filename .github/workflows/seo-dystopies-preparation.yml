@@ -1,0 +1,50 @@
+name: SEO Dystopies preparation
+
+on:
+  push:
+    branches:
+      - seo-dystopies-preparation
+
+permissions:
+  contents: write
+
+jobs:
+  individualize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-dystopies-preparation
+      - name: Inventory and extract Dystopies
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const archiveBox={window:{}};vm.createContext(archiveBox);vm.runInContext(fs.readFileSync('library-archive.js','utf8'),archiveBox);
+          const archive=(archiveBox.window.PITOU_PUBLIC_LIBRARY||[]).filter(x=>x&&x.category==='Dystopies');
+          const dataBox={window:{}};dataBox.window.window=dataBox.window;vm.createContext(dataBox);vm.runInContext(fs.readFileSync('data.js','utf8'),dataBox);
+          const legacy=(dataBox.window.TEXTS||[]).filter(x=>x&&x.category==='Dystopies');
+          const bySlug=new Map();
+          for(const x of archive) bySlug.set(x.slug,x);
+          for(const x of legacy){
+            if(bySlug.has(x.slug)) continue;
+            const htmlPath=`texts/${x.slug}.html`;
+            if(!fs.existsSync(htmlPath)) throw new Error(`HTML legacy absent: ${x.slug}`);
+            bySlug.set(x.slug,{...x,subtitle:'',ambience:'default',html:fs.readFileSync(htmlPath,'utf8')});
+          }
+          if(!bySlug.size) throw new Error('Aucune Dystopie trouvee');
+          console.log('Dystopies:',[...bySlug.keys()].join(', '));
+          for(const [slug,item] of bySlug){
+            if(item.category!=='Dystopies'||typeof item.html!=='string'||!item.html.length) throw new Error(`Dystopie invalide: ${slug}`);
+            fs.writeFileSync(`texts/${slug}.js`,`window.PITOU_LIBRARY_ITEM = ${JSON.stringify(item)};\n`,'utf8');
+          }
+          fs.writeFileSync('/tmp/dystopies-slugs.txt',[...bySlug.keys()].join('\n'));
+          NODE
+      - name: Commit generated Dystopies
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add texts/*.js
+          if git diff --cached --quiet; then echo "No Dystopies changes"; exit 0; fi
+          git commit -m "SEO Dystopies: individualiser les textes"
+          git push origin HEAD:seo-dystopies-preparation
