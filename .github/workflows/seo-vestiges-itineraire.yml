@@ -1,0 +1,42 @@
+name: SEO Vestiges Itineraire
+
+on:
+  push:
+    branches:
+      - seo-vestiges-itineraire
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-vestiges-itineraire
+      - name: Extract Itineraire
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const b={window:{}};b.window.window=b.window;vm.createContext(b);
+          vm.runInContext(fs.readFileSync('library-archive.js','utf8'),b,{timeout:30000});
+          const category="Itinéraire d'un enfant de putain ~~ Black Desert Online";
+          const items=(b.window.PITOU_PUBLIC_LIBRARY||[]).filter(x=>x&&x.category===category);
+          if(items.length!==35) throw new Error(`Attendu 35, trouve ${items.length}`);
+          for(const item of items){
+            if(!item.slug||typeof item.html!=='string'||!item.html.length) throw new Error(`Texte invalide ${item.slug}`);
+            const p=`texts/${item.slug}.js`;
+            if(fs.existsSync(p)) throw new Error(`Conflit existant ${p}`);
+            console.log(`${item.slug} :: ${item.title}`);
+            fs.writeFileSync(p,`window.PITOU_LIBRARY_ITEM = ${JSON.stringify(item)};\n`,'utf8');
+          }
+          NODE
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add texts/*.js
+          git commit -m "SEO Vestiges: individualiser Itineraire enfant de putain"
+          git push origin HEAD:seo-vestiges-itineraire
