@@ -1,0 +1,42 @@
+name: SEO Decouvrir audit
+
+on:
+  push:
+    branches:
+      - seo-vestiges-inventory
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-vestiges-inventory
+      - name: Audit Decouvrir series
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const files=['library-archive.js','library.js','library-baseline-20260822.js'];
+          const terms=/découvrir le monde|decouvrir le monde|lineage 2|hypérion|hyperion/i;
+          for(const f of files){
+            if(!fs.existsSync(f)) continue;
+            const box={window:{}}; box.window.window=box.window; vm.createContext(box);
+            try{vm.runInContext(fs.readFileSync(f,'utf8'),box,{timeout:20000});}catch(e){console.log('LOADERR',f,e.message);continue;}
+            const candidates=[];
+            for(const key of Object.keys(box.window)){
+              const v=box.window[key];
+              if(Array.isArray(v)) candidates.push([key,v]);
+            }
+            console.log('\nSOURCE',f);
+            for(const [key,arr] of candidates){
+              const hits=arr.filter(x=>x&&terms.test([x.category,x.title,x.subtitle,x.excerpt,x.html].map(y=>String(y||'')).join(' ')));
+              if(!hits.length) continue;
+              console.log('ARRAY',key,'HITS',hits.length);
+              for(const x of hits) console.log(JSON.stringify({slug:x.slug,title:x.title,category:x.category,subtitle:x.subtitle||''}));
+            }
+          }
+          NODE
