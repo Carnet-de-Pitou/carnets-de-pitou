@@ -1,0 +1,53 @@
+name: SEO Courriers pere preparation
+
+on:
+  push:
+    branches:
+      - seo-courriers-pere-preparation
+
+permissions:
+  contents: write
+
+jobs:
+  individualize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-courriers-pere-preparation
+      - name: Inventory and extract Courriers pere
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+          const match=x=>x&&norm(x.category).includes('courrier');
+          const archiveBox={window:{}};vm.createContext(archiveBox);vm.runInContext(fs.readFileSync('library-archive.js','utf8'),archiveBox);
+          const archive=(archiveBox.window.PITOU_PUBLIC_LIBRARY||[]).filter(match);
+          const dataBox={window:{}};dataBox.window.window=dataBox.window;vm.createContext(dataBox);vm.runInContext(fs.readFileSync('data.js','utf8'),dataBox);
+          const legacy=(dataBox.window.TEXTS||[]).filter(match);
+          const cats=[...new Set([...archive,...legacy].map(x=>x.category))];
+          console.log('Categories:',cats.join(' | '));
+          const bySlug=new Map();
+          for(const x of archive) bySlug.set(x.slug,x);
+          for(const x of legacy){
+            if(bySlug.has(x.slug)) continue;
+            const htmlPath=`texts/${x.slug}.html`;
+            if(!fs.existsSync(htmlPath)) throw new Error(`HTML legacy absent: ${x.slug}`);
+            bySlug.set(x.slug,{...x,subtitle:'',ambience:'default',html:fs.readFileSync(htmlPath,'utf8')});
+          }
+          if(!bySlug.size) throw new Error('Aucun Courrier trouve');
+          console.log('Courriers:',[...bySlug].map(([slug,x])=>`${slug} :: ${x.title} :: ${x.category}`).join('\n'));
+          for(const [slug,item] of bySlug){
+            if(!match(item)||typeof item.html!=='string'||!item.html.length) throw new Error(`Courrier invalide: ${slug}`);
+            fs.writeFileSync(`texts/${slug}.js`,`window.PITOU_LIBRARY_ITEM = ${JSON.stringify(item)};\n`,'utf8');
+          }
+          NODE
+      - name: Commit generated Courriers pere
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add texts/*.js
+          if git diff --cached --quiet; then echo "No Courriers changes"; exit 0; fi
+          git commit -m "SEO Courriers pere: individualiser les textes"
+          git push origin HEAD:seo-courriers-pere-preparation
