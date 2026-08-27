@@ -1,0 +1,35 @@
+name: SEO Vestiges inventory
+
+on:
+  push:
+    branches:
+      - seo-vestiges-inventory
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: seo-vestiges-inventory
+      - name: Inventory Vestiges categories
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const box={window:{}};vm.createContext(box);vm.runInContext(fs.readFileSync('library-archive.js','utf8'),box);
+          const items=box.window.PITOU_PUBLIC_LIBRARY||[];
+          const counts=new Map();
+          for(const x of items){
+            const c=String(x&&x.category||'').trim();
+            if(!c) continue;
+            if(/prophecy|ultima|role|rôle|croisade|vestige|decouvrir le monde|découvrir le monde/i.test(c)) counts.set(c,(counts.get(c)||0)+1);
+          }
+          console.log('VESTIGES-CATEGORIES');
+          for(const [c,n] of [...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0],'fr'))) console.log(`${n}\t${c}`);
+          console.log('VESTIGES-SLUGS');
+          for(const x of items.filter(x=>counts.has(String(x&&x.category||'').trim()))) console.log(`${x.category}\t${x.slug}\t${x.title}`);
+          NODE
