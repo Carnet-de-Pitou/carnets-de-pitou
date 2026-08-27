@@ -1,0 +1,57 @@
+name: Audit SEO 179 final
+
+on:
+  push:
+    branches:
+      - audit-seo-179-final
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Audit corpus and individual files
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm'),path=require('path');
+          function load(file,varNames){
+            if(!fs.existsSync(file)) return [];
+            const b={window:{}}; b.window.window=b.window; vm.createContext(b);
+            try { vm.runInContext(fs.readFileSync(file,'utf8'),b,{filename:file,timeout:30000}); } catch(e){ console.log('LOADERR',file,e.message); return []; }
+            for(const n of varNames){ if(Array.isArray(b.window[n])) return b.window[n]; if(Array.isArray(b[n])) return b[n]; }
+            return [];
+          }
+          const sources=[
+            ['library-archive.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],
+            ['library-baseline-20260822.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],
+            ['library.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],
+            ['library-items.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY']],
+            ['data.js',['PITOU_PUBLIC_LIBRARY','PITOU_LIBRARY','TEXTS','texts']]
+          ];
+          const bySlug=new Map();
+          for(const [file,names] of sources){
+            const arr=load(file,names); console.log('SOURCE',file,arr.length);
+            for(const x of arr){ if(x&&x.slug&&!bySlug.has(x.slug)) bySlug.set(x.slug,{...x,_source:file}); }
+          }
+          const files=fs.existsSync('texts')?fs.readdirSync('texts').filter(f=>f.endsWith('.js')):[];
+          const indiv=new Map();
+          for(const f of files){
+            const b={window:{}};b.window.window=b.window;vm.createContext(b);
+            try{vm.runInContext(fs.readFileSync(path.join('texts',f),'utf8'),b,{timeout:30000});const x=b.window.PITOU_LIBRARY_ITEM;if(x&&x.slug){indiv.set(x.slug,x);if(!bySlug.has(x.slug))bySlug.set(x.slug,{...x,_source:'texts/'+f});}}
+            catch(e){console.log('INDIVERR',f,e.message);}
+          }
+          console.log('CORPUS_UNIQUE',bySlug.size);
+          console.log('INDIVIDUAL_UNIQUE',indiv.size);
+          const missing=[...bySlug.keys()].filter(s=>!indiv.has(s));
+          const extra=[...indiv.keys()].filter(s=>!bySlug.has(s));
+          console.log('MISSING_COUNT',missing.length); for(const s of missing){const x=bySlug.get(s);console.log('MISSING',s,'::',x.title,'::',x.category,'::',x._source);}
+          console.log('EXTRA_COUNT',extra.length); for(const s of extra)console.log('EXTRA',s);
+          let mismatch=0;
+          for(const [s,x] of indiv){const ref=bySlug.get(s);if(!ref)continue; if(ref.title&&x.title!==ref.title){console.log('TITLE_MISMATCH',s);mismatch++;} if(ref.html&&x.html!==ref.html){console.log('HTML_MISMATCH',s,'ref',ref._source);mismatch++;}}
+          console.log('CONTENT_MISMATCH_COUNT',mismatch);
+          const cats={};for(const x of bySlug.values()){const c=x.category||'(sans categorie)';cats[c]=(cats[c]||0)+1;} for(const [c,n] of Object.entries(cats).sort((a,b)=>a[0].localeCompare(b[0])))console.log('CATEGORY',n,'::',c);
+          if(bySlug.size!==179) { console.error('FAIL corpus != 179'); process.exitCode=2; }
+          NODE
