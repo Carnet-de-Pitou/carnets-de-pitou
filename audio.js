@@ -12,7 +12,8 @@
     'Découvrir le monde ~~ Lineage 2, Hypérion': 'assets/lineage-2-hyperion-gengis.mp3',
     'Ma Croisade.. ~~ Prophecy, Ultima Online': 'assets/prophecy-ma-croisade.mp3',
     'La rédemption sur Althéa ~~ The Four Coming (T4C)': 'assets/gilt-rust-oath-althea.mp3',
-    "Itinéraire d'un enfant de putain ~~ Black Desert Online": 'assets/black-desert-online-nennius.mp3'
+    "Itinéraire d'un enfant de putain ~~ Black Desert Online": 'assets/black-desert-online-nennius.mp3',
+    'Magie, collocation et petites emmerdes ~~ Black Desert Online': 'assets/black-desert-online-2-nennius.mp3'
   };
 
   audio.volume = 0.38;
