@@ -1,0 +1,30 @@
+name: Publish Bas les Masques
+on:
+  push:
+    branches: [publish-bas-les-masques]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Add catalog entry and validate
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const p='data.js', s=fs.readFileSync(p,'utf8');
+          if(s.includes('"slug":"bas-les-masques"')) { console.log('entry already present'); process.exit(0); }
+          const item={title:'Bas les Masques..',slug:'bas-les-masques',date:'2026-08-28',category:'Social',minutes:5,excerpt:"Le plus grand mensonge n'est pas celui que l'on raconte aux autres. C'est celui que l'on répète chaque matin devant son miroir. À force de le réciter, il finit par avoir le goût de la vérité. C'est ainsi que naissent les masques. Pas sur le visage. Dans la…"};
+          const marker='}];'; const i=s.lastIndexOf(marker); if(i<0) throw Error('TEXTS terminator not found');
+          fs.writeFileSync(p,s.slice(0,i+1)+','+JSON.stringify(item)+s.slice(i+1));
+          NODE
+          node scripts/generate-seo-pages.js
+          test -f _site/textes/bas-les-masques.html
+          grep -q 'bas-les-masques.html' _site/sitemap.xml
+          grep -q 'Bas les Masques..' _site/textes/bas-les-masques.html
+          git config user.name 'Carnet-de-Pitou'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data.js
+          git diff --cached --quiet || git commit -m 'Publication: référencer Bas les Masques'
+          git push
