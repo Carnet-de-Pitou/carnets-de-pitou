@@ -9,7 +9,8 @@
     'Les Sentiers de la Solitude ~~ Age of Conan': 'assets/age-of-conan-drelnas.mp3',
     'Les Sentiers de la Spiritualité ~~ Lineage 2, Hérésie': 'assets/lineage-2-heresie-khan.mp3',
     'Les Sentiers de la Foi ~~ World of Warcraft': 'assets/world-of-warcraft-openwow-gengis.mp3',
-    'Découvrir le monde ~~ Lineage 2, Hypérion': 'assets/lineage-2-hyperion-gengis.mp3'
+    'Découvrir le monde ~~ Lineage 2, Hypérion': 'assets/lineage-2-hyperion-gengis.mp3',
+    'Ma Croisade.. ~~ Prophecy, Ultima Online': 'assets/prophecy-ma-croisade.mp3'
   };
 
   audio.volume = 0.38;
