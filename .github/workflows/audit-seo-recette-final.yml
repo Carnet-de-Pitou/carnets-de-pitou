@@ -1,0 +1,26 @@
+name: Audit SEO recette final
+on:
+  push:
+    branches: [audit-seo-recette-final]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Generate SEO pages
+        run: node scripts/generate-seo-pages.js
+      - name: Audit SEO
+        run: |
+          echo "INDIVIDUAL_JS $(find texts -maxdepth 1 -name '*.js' | wc -l)"
+          echo "GENERATED_HTML $(find textes -maxdepth 1 -name '*.html' | wc -l)"
+          echo "SITEMAP $(test -f sitemap.xml && echo yes || echo no)"
+          echo "SHARE $(grep -c 'id=\"shareText\"' index.html || true)"
+          echo "CANONICALS $(grep -l 'rel=\"canonical\"' textes/*.html 2>/dev/null | wc -l)"
+          echo "ROBOTS $(grep -l 'index,follow' textes/*.html 2>/dev/null | wc -l)"
+          echo "DESCRIPTIONS $(grep -l 'name=\"description\"' textes/*.html 2>/dev/null | wc -l)"
+          echo "H1 $(grep -l '<h1' textes/*.html 2>/dev/null | wc -l)"
+          echo "IMAGE_TEXTS $(grep -l '<img' texts/*.js 2>/dev/null | wc -l)"
+          echo "SITEMAP_TEXT_URLS $(grep -o '/textes/[^<]*\.html' sitemap.xml 2>/dev/null | sort -u | wc -l)"
+          grep -nE 'readdirSync|texts|\.js' scripts/generate-seo-pages.js | head -20 || true
