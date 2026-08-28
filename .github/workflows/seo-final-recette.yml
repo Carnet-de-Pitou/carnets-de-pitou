@@ -1,0 +1,41 @@
+name: SEO final recette
+on:
+  push:
+    branches: [seo-final-recette]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Generate site
+        run: node scripts/generate-seo-pages.js
+      - name: Audit generated SEO pages, content and images
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),path=require('path'),vm=require('vm');
+          const base='https://carnet-de-pitou.github.io/carnets-de-pitou';
+          const files=fs.readdirSync('texts').filter(x=>x.endsWith('.js'));
+          let ok=0,errors=[],sourceImages=0,generatedImageRefs=0;
+          for(const f of files){
+            const ctx={window:{}};vm.createContext(ctx);try{vm.runInContext(fs.readFileSync(path.join('texts',f),'utf8'),ctx)}catch(e){errors.push(`${f}: JS invalide ${e.message}`);continue}
+            const t=ctx.window.PITOU_LIBRARY_ITEM;if(!t||!t.slug){errors.push(`${f}: item/slug absent`);continue}
+            const p=path.join('_site','textes',t.slug+'.html');if(!fs.existsSync(p)){errors.push(`${t.slug}: page absente`);continue}
+            const h=fs.readFileSync(p,'utf8');
+            const expectedCanon=`<link rel="canonical" href="${base}/textes/${encodeURIComponent(t.slug)}.html">`;
+            if(!h.includes(`<title>${esc(t.title)} — Les Carnets de Pitou</title>`))errors.push(`${t.slug}: title`);
+            if(!h.includes(`<h1>${esc(t.title)}</h1>`))errors.push(`${t.slug}: h1`);
+            if(!h.includes('name="description" content="'))errors.push(`${t.slug}: description`);
+            if(!h.includes('name="robots" content="index,follow"'))errors.push(`${t.slug}: robots`);
+            if(!h.includes(expectedCanon))errors.push(`${t.slug}: canonical`);
+            if(!h.includes(`../texts/${esc(t.slug)}.js`))errors.push(`${t.slug}: source JS`);
+            const imgs=(String(t.html||'').match(/<img\b/gi)||[]).length;sourceImages+=imgs;if(imgs&&h.includes(`../texts/${esc(t.slug)}.js`))generatedImageRefs+=imgs;
+            ok++;
+          }
+          function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+          const sitemap=fs.readFileSync('_site/sitemap.xml','utf8');
+          const sitemapTextUrls=(sitemap.match(/\/textes\//g)||[]).length;
+          console.log('INDIVIDUAL_FILES',files.length);console.log('SEO_PAGES_CHECKED',ok);console.log('SOURCE_IMAGE_TAGS',sourceImages);console.log('IMAGE_TAGS_PRESERVED_BY_JS_SOURCE',generatedImageRefs);console.log('SITEMAP_TEXT_URLS',sitemapTextUrls);console.log('ERROR_COUNT',errors.length);errors.slice(0,100).forEach(x=>console.log('ERROR',x));
+          if(errors.length)process.exitCode=1;
+          NODE
