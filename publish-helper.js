@@ -10,7 +10,75 @@ async function put(path,text,message,sha){const body={message,content:b64(text),
 async function putBase64(path,data,message,sha){const body={message,content:data,branch:BRANCH,...(sha?{sha}:{})};return api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 function itemScript(item){return 'window.PITOU_LIBRARY_ITEM = '+JSON.stringify(item)+';\n'}function manifestScript(slugs){return 'window.PITOU_LIBRARY_ITEM_SLUGS = '+JSON.stringify(slugs)+';\n'}
 async function readManifest(){const f=await getFile(MANIFEST);if(!f)return{sha:null,slugs:[]};const m=f.text.match(/=\s*(\[[\s\S]*\])\s*;?\s*$/);if(!m)throw new Error('Index des nouveaux textes illisible');return{sha:f.sha,slugs:JSON.parse(m[1])}}
-async function externalizeImages(item){const box=document.createElement('div');box.innerHTML=item.html;const imgs=[...box.querySelectorAll('img[src^="data:image/"]')];const seen=new Map();let n=0;for(const img of imgs){const src=img.getAttribute('src');if(seen.has(src)){img.setAttribute('src',seen.get(src));continue}const m=src.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/i);if(!m)continue;n++;const ext=m[1].toLowerCase().replace('jpeg','jpg'),data=m[2].replace(/\s/g,''),path=`assets/text-images/${item.slug}-${n}.${ext}`;say(`Image ${n}/${imgs.length} : enregistrement séparé…`);const old=await getFile(path);await putBase64(path,data,'Ajoute une image du texte : '+item.title,old?.sha);const url='/carnets-de-pitou/'+path;seen.set(src,url);img.setAttribute('src',url)}item.html=box.innerHTML;return{item,count:n}}
-async function publish(){const item=currentItem();if(!item.title){say('Ajoute un titre avant de mettre en ligne.');return}if(!plain(item.html)){say('Le texte est vide.');return}btn.click();if(!token()&&!connect())return;const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;try{say('Préparation de « '+item.title+' »…');const prepared=await externalizeImages(item);say('Publication du texte allégé…');const path='texts/'+item.slug+'.js',old=await getFile(path);await put(path,itemScript(prepared.item),'Publie le texte : '+item.title,old?.sha);const mf=await readManifest(),slugs=[...new Set([...mf.slugs,item.slug])];await put(MANIFEST,manifestScript(slugs),'Met à jour l’index des textes',mf.sha);localStorage.setItem('pitou-published','[]');say('Publié : « '+item.title+' »'+(prepared.count?` — ${prepared.count} image(s) externalisée(s).`:' — aucune image intégrée à externaliser.'));setTimeout(()=>location.reload(),3500)}catch(e){say(e.message+' — aucune donnée locale n’a été supprimée.')}finally{if(direct)direct.disabled=false}}
+async function createGitBlob(content,encoding='utf-8'){
+  return api(`https://api.github.com/repos/${OWNER}/${REPO}/git/blobs`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content,encoding})
+  })
+}
+async function branchState(){
+  const ref=await api(`https://api.github.com/repos/${OWNER}/${REPO}/git/ref/heads/${BRANCH}`),
+        commit=await api(`https://api.github.com/repos/${OWNER}/${REPO}/git/commits/${ref.object.sha}`);
+  return{commitSha:ref.object.sha,treeSha:commit.tree.sha}
+}
+async function publishTree(parent,baseTree,entries,message){
+  const tree=await api(`https://api.github.com/repos/${OWNER}/${REPO}/git/trees`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({base_tree:baseTree,tree:entries})
+  }),commit=await api(`https://api.github.com/repos/${OWNER}/${REPO}/git/commits`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message,tree:tree.sha,parents:[parent]})
+  });
+  await api(`https://api.github.com/repos/${OWNER}/${REPO}/git/refs/heads/${BRANCH}`,{
+    method:'PATCH',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({sha:commit.sha,force:false})
+  });
+  return commit.sha
+}
+async function externalizeImages(item){
+  const box=document.createElement('div');box.innerHTML=item.html;
+  const imgs=[...box.querySelectorAll('img[src^="data:image/"]')],seen=new Map(),entries=[];
+  let n=0;
+  for(const img of imgs){
+    const src=img.getAttribute('src');
+    if(seen.has(src)){img.setAttribute('src',seen.get(src));continue}
+    const m=src.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/i);if(!m)continue;
+    n++;
+    const ext=m[1].toLowerCase().replace('jpeg','jpg'),data=m[2].replace(/\s/g,''),
+          path=`assets/text-images/${item.slug}-${n}.${ext}`;
+    say(`Image ${n}/${imgs.length} : préparation…`);
+    const blob=await createGitBlob(data,'base64'),url='/carnets-de-pitou/'+path;
+    entries.push({path,mode:'100644',type:'blob',sha:blob.sha});
+    seen.set(src,url);img.setAttribute('src',url)
+  }
+  item.html=box.innerHTML;
+  return{item,count:n,entries}
+}
+async function publish(){
+  const item=currentItem();
+  if(!item.title){say('Ajoute un titre avant de mettre en ligne.');return}
+  if(!plain(item.html)){say('Le texte est vide.');return}
+  btn.click();
+  if(!token()&&!connect())return;
+  const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;
+  try{
+    say('Préparation de « '+item.title+' »…');
+    const prepared=await externalizeImages(item),mf=await readManifest(),
+          slugs=[...new Set([...mf.slugs,item.slug])],state=await branchState();
+    say('Publication atomique du texte, des images et de l’index…');
+    const [textBlob,manifestBlob]=await Promise.all([
+      createGitBlob(itemScript(prepared.item)),createGitBlob(manifestScript(slugs))
+    ]),entries=[...prepared.entries,
+      {path:'texts/'+item.slug+'.js',mode:'100644',type:'blob',sha:textBlob.sha},
+      {path:MANIFEST,mode:'100644',type:'blob',sha:manifestBlob.sha}
+    ];
+    await publishTree(state.commitSha,state.treeSha,entries,'Publie en une opération : '+item.title);
+    localStorage.setItem('pitou-published','[]');
+    say('Publié en une seule opération : « '+item.title+' »'+(prepared.count?` — ${prepared.count} image(s).`:' — sans nouvelle image.'));
+    setTimeout(()=>location.reload(),3500)
+  }catch(e){
+    const conflict=/422|fast forward|reference update/i.test(e.message||'');
+    say((conflict?'Le site a changé pendant la publication. Réessaie une fois.':e.message)+' — aucune donnée locale n’a été supprimée.')
+  }finally{if(direct)direct.disabled=false}
+}
 let direct=document.getElementById('publishDirectBtn');if(!direct){direct=document.createElement('button');direct.type='button';direct.id='publishDirectBtn';direct.className='admin-primary';direct.textContent='Mettre en ligne sur le site';actions.insertBefore(direct,btn.nextSibling)}direct.onclick=publish;let c=document.getElementById('githubConnectBtn');if(!c){c=document.createElement('button');c.type='button';c.id='githubConnectBtn';c.textContent='Connexion GitHub';actions.appendChild(c)}c.onclick=connect;window.publishPitouToGitHub=publish;
 })();
