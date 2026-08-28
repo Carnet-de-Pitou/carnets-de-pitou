@@ -14,7 +14,8 @@
     'La rédemption sur Althéa ~~ The Four Coming (T4C)': 'assets/gilt-rust-oath-althea.mp3',
     "Itinéraire d'un enfant de putain ~~ Black Desert Online": 'assets/black-desert-online-nennius.mp3',
     'Magie, collocation et petites emmerdes ~~ Black Desert Online': 'assets/black-desert-online-2-nennius.mp3',
-    'Les Sentiers de la Vie ~~ World of Warcraft, Sentinelles': 'assets/wow-sentinelles-drelnas.mp3'
+    'Les Sentiers de la Vie ~~ World of Warcraft, Sentinelles': 'assets/wow-sentinelles-drelnas.mp3',
+    'Les Chemins de la Paternité ~~ Tera': 'assets/tera-nennius-3.mp3'
   };
 
   audio.volume = 0.38;
