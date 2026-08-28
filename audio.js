@@ -11,7 +11,8 @@
     'Les Sentiers de la Foi ~~ World of Warcraft': 'assets/world-of-warcraft-openwow-gengis.mp3',
     'Découvrir le monde ~~ Lineage 2, Hypérion': 'assets/lineage-2-hyperion-gengis.mp3',
     'Ma Croisade.. ~~ Prophecy, Ultima Online': 'assets/prophecy-ma-croisade.mp3',
-    'La rédemption sur Althéa ~~ The Four Coming (T4C)': 'assets/gilt-rust-oath-althea.mp3'
+    'La rédemption sur Althéa ~~ The Four Coming (T4C)': 'assets/gilt-rust-oath-althea.mp3',
+    "Itinéraire d'un enfant de putain ~~ Black Desert Online": 'assets/black-desert-online-nennius.mp3'
   };
 
   audio.volume = 0.38;
