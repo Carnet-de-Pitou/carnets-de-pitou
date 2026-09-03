@@ -89,14 +89,14 @@ function installProofreader(){
         if(match[0]==='')regex.lastIndex++
       }
     }
-    matches(/\b\d{1,2}[hH](?:\d{2,3})?\b/g,'hour','Format horaire incohérent',m=>{
-      const parts=m[0].split(/[hH]/),hour=parts[0].padStart(2,'0'),rawMinutes=parts[1]||'00',minutes=rawMinutes.length===3?rawMinutes.slice(-2):rawMinutes;return hour+'h'+minutes
+    matches(/\b\d{1,2}[hH]\d{2,3}\b/g,'hour','Format horaire incohérent',m=>{
+      const parts=m[0].split(/[hH]/),hour=parts[0].padStart(2,'0'),minutes=parts[1].length===3?parts[1].slice(-2):parts[1];return hour+'h'+minutes
     },m=>!/^\d{2}h\d{2}$/.test(m[0])||Number(m[0].slice(0,2))>23||Number(m[0].slice(-2))>59);
     matches(/([.!?…])([A-ZÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸ])/g,'space-after-punctuation','Espace manquant après la ponctuation',m=>m[1]+' '+m[2]);
     matches(/(?<!\.)\.\.(?![.?])/g,'double-dot','Deux points seuls', '...');
     matches(/ {2,}/g,'double-space','Espaces répétés',' ');
     matches(/^(\s*)(\d{2}h\d{2})\s+(?=[a-zà-ÿ])/u,'hour-comma','Virgule manquante après l’heure',m=>m[1]+m[2]+', ');
-    matches(/\b([\p{L}À-ÿ’'-]+)(\s+)\1\b/giu,'duplicate','Mot répété',m=>m[1],m=>!['nous','vous'].includes(m[1].toLocaleLowerCase('fr')));
+    matches(/\b([\p{L}À-ÿ’'-]+)(\s+)\1\b/giu,'duplicate','Mot répété',m=>m[1],m=>m[1].length>1&&!['nous','vous'].includes(m[1].toLocaleLowerCase('fr')));
     matches(/«\s*»/g,'empty-quotes','Guillemets vides',null);
     matches(/\(\s*\)/g,'empty-parentheses','Parenthèses vides',null);
     matches(/\b([ldjtmnsç]|qu)\s+([’'])/giu,'apostrophe-before','Espace avant une apostrophe',m=>m[1]+m[2]);
@@ -118,7 +118,6 @@ function installProofreader(){
       [/\bvivons nous\b/giu,'vivons-nous','Trait d’union manquant','vivons-nous'],
       [/\bun ans\b/giu,'un-an','Accord du nombre','un an'],
       [/\bma épouse\b/giu,'mon-epouse','Déterminant incorrect','mon épouse'],
-      [/\bje en\b/giu,'je-nen','Élision manquante','je n’en'],
       [/\bgrand père\b/giu,'grand-pere','Trait d’union manquant','grand-père'],
       [/\bMalheurs à qui\b/gu,'malheur-a-qui','Expression au singulier','Malheur à qui'],
       [/\bmalheurs à qui\b/gu,'malheur-a-qui','Expression au singulier','malheur à qui']
