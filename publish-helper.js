@@ -89,25 +89,27 @@ function installProofreader(){
         if(match[0]==='')regex.lastIndex++
       }
     }
-    matches(/\b\d{1,2}[hH]\d{2,3}\b/g,'hour','Format horaire incohérent',m=>{
-      const parts=m[0].split(/[hH]/),hour=parts[0].padStart(2,'0'),minutes=parts[1].length===3?parts[1].slice(-2):parts[1];return hour+'h'+minutes
+    matches(/\b\d{1,2}[hH](?:\d{2,3})?\b/g,'hour','Format horaire incohérent',m=>{
+      const parts=m[0].split(/[hH]/),hour=parts[0].padStart(2,'0'),rawMinutes=parts[1]||'00',minutes=rawMinutes.length===3?rawMinutes.slice(-2):rawMinutes;return hour+'h'+minutes
     },m=>!/^\d{2}h\d{2}$/.test(m[0])||Number(m[0].slice(0,2))>23||Number(m[0].slice(-2))>59);
     matches(/([.!?…])([A-ZÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸ])/g,'space-after-punctuation','Espace manquant après la ponctuation',m=>m[1]+' '+m[2]);
     matches(/(?<!\.)\.\.(?![.?])/g,'double-dot','Deux points seuls', '...');
     matches(/ {2,}/g,'double-space','Espaces répétés',' ');
     matches(/^(\s*)(\d{2}h\d{2})\s+(?=[a-zà-ÿ])/u,'hour-comma','Virgule manquante après l’heure',m=>m[1]+m[2]+', ');
-    matches(/\b([\p{L}À-ÿ’'-]+)(\s+)\1\b/giu,'duplicate','Mot répété',m=>m[1]);
+    matches(/\b([\p{L}À-ÿ’'-]+)(\s+)\1\b/giu,'duplicate','Mot répété',m=>m[1],m=>!['nous','vous'].includes(m[1].toLocaleLowerCase('fr')));
     matches(/«\s*»/g,'empty-quotes','Guillemets vides',null);
     matches(/\(\s*\)/g,'empty-parentheses','Parenthèses vides',null);
     matches(/\b([ldjtmnsç]|qu)\s+([’'])/giu,'apostrophe-before','Espace avant une apostrophe',m=>m[1]+m[2]);
     matches(/([’'])\s+([\p{L}À-ÿ])/gu,'apostrophe-after','Espace après une apostrophe',m=>m[1]+m[2]);
     const common=[
       [/\beux(?:\s+|-)mêmes?\b/giu,'eux-memes','Accord ou trait d’union incorrect','eux-mêmes'],
+      [/\b(nous|vous)(?:\s+|-)mêmes?\b/giu,'nous-vous-memes','Accord ou trait d’union incorrect',m=>m[1]+'-mêmes'],
       [/\bquelque fois\b/giu,'quelquefois','Mot à souder','quelquefois'],
       [/\bQuelques fois(?=\s*[,.;:!?…])/gu,'quelquefois-plural','Locution adverbiale à souder','Quelquefois'],
       [/\bquelques fois(?=\s*[,.;:!?…])/gu,'quelquefois-plural','Locution adverbiale à souder','quelquefois'],
       [/\bvoir même\b/giu,'voire','Homophone probable','voire même'],
       [/\bvoir(?=\s+(?:me|te|se|nous|vous|les?)\s+[\p{L}À-ÿ’'-]+)/giu,'voire-action','Homophone probable','voire'],
+      [/\bvoir(?=\s+(?:maladroites?|douloureuses?|impossibles?|pires?|mieux|davantage)\b)/giu,'voire-adjectif','Homophone probable','voire'],
       [/\b([Uu]ne) (ère|époque|période) ou\b/gu,'ou-accent','Accent manquant',m=>m[1]+' '+m[2]+' où'],
       [/\b(qu[’']il|qu[’']elle|il|elle|on) faillie\b/giu,'faille','Conjugaison incorrecte',m=>m[1]+' faille'],
       [/\bauto-critique\b/giu,'autocritique','Graphie à souder','autocritique'],
@@ -117,7 +119,9 @@ function installProofreader(){
       [/\bun ans\b/giu,'un-an','Accord du nombre','un an'],
       [/\bma épouse\b/giu,'mon-epouse','Déterminant incorrect','mon épouse'],
       [/\bje en\b/giu,'je-nen','Élision manquante','je n’en'],
-      [/\bgrand père\b/giu,'grand-pere','Trait d’union manquant','grand-père']
+      [/\bgrand père\b/giu,'grand-pere','Trait d’union manquant','grand-père'],
+      [/\bMalheurs à qui\b/gu,'malheur-a-qui','Expression au singulier','Malheur à qui'],
+      [/\bmalheurs à qui\b/gu,'malheur-a-qui','Expression au singulier','malheur à qui']
     ];
     common.forEach(([regex,code,label,replacement])=>matches(regex,code,label,replacement));
     return issues
