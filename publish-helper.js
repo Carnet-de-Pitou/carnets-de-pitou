@@ -53,7 +53,110 @@ async function externalizeImages(item){
   item.html=box.innerHTML;
   return{item,count:n,entries}
 }
+function installProofreader(){
+  const editor=document.getElementById('richEditor'),title=document.getElementById('edTitle'),subtitle=document.getElementById('edSubtitle');
+  if(!editor)return null;
+  [editor,title,subtitle].filter(Boolean).forEach(el=>{el.setAttribute('lang','fr');el.setAttribute('spellcheck','true')});
+
+  const ignored=new Set(),proofStyle=document.createElement('style');
+  proofStyle.textContent=`
+    .proofreader-panel{display:none;margin-top:14px;border:1px solid #745637;background:#120c08;padding:15px;color:#d7c5a7}
+    .proofreader-panel.open{display:block}.proofreader-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .proofreader-head strong{color:#ead8b5}.proofreader-list{display:grid;gap:8px;max-height:360px;overflow:auto}
+    .proofreader-issue{border-left:3px solid #a97843;background:#1b120c;padding:10px 12px}
+    .proofreader-issue code{display:block;white-space:pre-wrap;color:#f0d6ad;background:#0d0906;padding:6px 8px;margin:6px 0;font-family:Georgia,serif}
+    .proofreader-actions{display:flex;flex-wrap:wrap;gap:6px}.proofreader-actions button,.proofreader-head button{background:#2a1c12;border:1px solid #745637;color:#e6d5b7;padding:6px 8px;cursor:pointer}
+    .proofreader-ok{color:#b9d0a4}.proofreader-note{color:#9f8b6d;font-size:.82rem;margin:8px 0 0}
+  `;
+  document.head.appendChild(proofStyle);
+
+  const panel=document.createElement('section');panel.id='proofreaderPanel';panel.className='proofreader-panel';panel.setAttribute('aria-live','polite');
+  panel.innerHTML='<div class="proofreader-head"><strong id="proofreaderSummary">Vérification du texte</strong><button type="button" id="proofreaderIgnoreAll">Tout ignorer</button></div><div id="proofreaderList" class="proofreader-list"></div><p class="proofreader-note">Contrôle local : aucune partie du texte n’est envoyée à un service externe. Le soulignement orthographique dépend du navigateur.</p>';
+  status.insertAdjacentElement('afterend',panel);
+  const list=panel.querySelector('#proofreaderList'),summary=panel.querySelector('#proofreaderSummary');
+
+  function keyFor(code,text,start,source){return code+'|'+text+'|'+source.slice(Math.max(0,start-18),start+text.length+18)}
+  function replacementValue(rep,match){return typeof rep==='function'?rep(match):String(rep).replace(/\$(\d+)/g,(_,n)=>match[Number(n)]||'')}
+  function analyzeSource(source,target,kind){
+    const issues=[];
+    function matches(regex,code,label,replacement,filter){
+      regex.lastIndex=0;let match;
+      while((match=regex.exec(source))){
+        if(!filter||filter(match)){
+          const found=match[0],key=keyFor(code,found,match.index,source);
+          if(!ignored.has(key))issues.push({code,label,found,replacement:replacement==null?null:replacementValue(replacement,match),start:match.index,end:match.index+found.length,target,kind,key});
+        }
+        if(match[0]==='')regex.lastIndex++
+      }
+    }
+    matches(/\b\d{1,2}[hH]\d{2,3}\b/g,'hour','Format horaire incohérent',m=>{
+      const parts=m[0].split(/[hH]/),hour=parts[0].padStart(2,'0'),minutes=parts[1].length===3?parts[1].slice(-2):parts[1];return hour+'h'+minutes
+    },m=>!/^\d{2}h\d{2}$/.test(m[0])||Number(m[0].slice(0,2))>23||Number(m[0].slice(-2))>59);
+    matches(/([.!?…])([A-ZÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸ])/g,'space-after-punctuation','Espace manquant après la ponctuation',m=>m[1]+' '+m[2]);
+    matches(/(?<!\.)\.\.(?![.?])/g,'double-dot','Deux points seuls', '...');
+    matches(/\b([\p{L}À-ÿ’'-]+)(\s+)\1\b/giu,'duplicate','Mot répété',m=>m[1]);
+    matches(/«\s*»/g,'empty-quotes','Guillemets vides',null);
+    matches(/\(\s*\)/g,'empty-parentheses','Parenthèses vides',null);
+    matches(/\b([ldjtmnsç]|qu)\s+([’'])/giu,'apostrophe-before','Espace avant une apostrophe',m=>m[1]+m[2]);
+    matches(/([’'])\s+([\p{L}À-ÿ])/gu,'apostrophe-after','Espace après une apostrophe',m=>m[1]+m[2]);
+    const common=[
+      [/\beux mêmes?\b/giu,'eux-memes','Trait d’union manquant','eux-mêmes'],
+      [/\bquelque fois\b/giu,'quelquefois','Mot à souder','quelquefois'],
+      [/\bvoir même\b/giu,'voire','Homophone probable','voire même'],
+      [/\bA peine\b/g,'a-peine','Accent manquant','À peine'],
+      [/\bont-il\b/giu,'ont-ils','Accord du sujet','ont-ils'],
+      [/\bvivons nous\b/giu,'vivons-nous','Trait d’union manquant','vivons-nous'],
+      [/\bun ans\b/giu,'un-an','Accord du nombre','un an'],
+      [/\bma épouse\b/giu,'mon-epouse','Déterminant incorrect','mon épouse'],
+      [/\bje en\b/giu,'je-nen','Élision manquante','je n’en'],
+      [/\bgrand père\b/giu,'grand-pere','Trait d’union manquant','grand-père']
+    ];
+    common.forEach(([regex,code,label,replacement])=>matches(regex,code,label,replacement));
+    return issues
+  }
+  function collect(){
+    const issues=[];
+    [title,subtitle].filter(Boolean).forEach(field=>issues.push(...analyzeSource(field.value,field,'field')));
+    const walker=document.createTreeWalker(editor,NodeFilter.SHOW_TEXT);let node;
+    while((node=walker.nextNode()))if(node.data.trim())issues.push(...analyzeSource(node.data,node,'text'));
+    return issues
+  }
+  function locate(issue){
+    if(issue.kind==='field'){issue.target.focus();issue.target.setSelectionRange(issue.start,issue.end);return}
+    if(!issue.target.isConnected)return scan();
+    const range=document.createRange(),selection=window.getSelection();range.setStart(issue.target,issue.start);range.setEnd(issue.target,issue.end);selection.removeAllRanges();selection.addRange(range);issue.target.parentElement?.scrollIntoView({behavior:'smooth',block:'center'});editor.focus()
+  }
+  function fix(issue){
+    if(issue.replacement==null)return;
+    if(issue.kind==='field')issue.target.setRangeText(issue.replacement,issue.start,issue.end,'end');
+    else if(issue.target.isConnected&&issue.target.data.slice(issue.start,issue.end)===issue.found)issue.target.replaceData(issue.start,issue.found.length,issue.replacement);
+    editor.dispatchEvent(new Event('input',{bubbles:true}));scan()
+  }
+  function scan(open=true){
+    const issues=collect();list.replaceChildren();summary.textContent=issues.length?`${issues.length} anomalie${issues.length>1?'s':''} détectée${issues.length>1?'s':''}`:'Aucune anomalie ciblée détectée';
+    panel.classList.toggle('open',open||issues.length>0);
+    if(!issues.length){const ok=document.createElement('div');ok.className='proofreader-ok';ok.textContent='Le vérificateur local n’a rien repéré. Relis tout de même le fond et les accords complexes.';list.appendChild(ok);return issues}
+    issues.forEach(issue=>{
+      const row=document.createElement('div');row.className='proofreader-issue';
+      const label=document.createElement('div');label.textContent=issue.label;
+      const excerpt=document.createElement('code');excerpt.textContent=issue.found+(issue.replacement!=null?'  →  '+issue.replacement:'');
+      const actions=document.createElement('div');actions.className='proofreader-actions';
+      const locateBtn=document.createElement('button');locateBtn.type='button';locateBtn.textContent='Repérer';locateBtn.onclick=()=>locate(issue);actions.appendChild(locateBtn);
+      if(issue.replacement!=null){const fixBtn=document.createElement('button');fixBtn.type='button';fixBtn.textContent='Corriger';fixBtn.onclick=()=>fix(issue);actions.appendChild(fixBtn)}
+      const ignoreBtn=document.createElement('button');ignoreBtn.type='button';ignoreBtn.textContent='Ignorer';ignoreBtn.onclick=()=>{ignored.add(issue.key);scan()};actions.appendChild(ignoreBtn);
+      row.append(label,excerpt,actions);list.appendChild(row)
+    });
+    return issues
+  }
+  let verify=document.getElementById('verifyTextBtn');if(!verify){verify=document.createElement('button');verify.type='button';verify.id='verifyTextBtn';verify.textContent='Vérifier le texte';actions.insertBefore(verify,actions.firstChild)}
+  verify.onclick=()=>scan(true);
+  panel.querySelector('#proofreaderIgnoreAll').onclick=()=>{collect().forEach(issue=>ignored.add(issue.key));scan(true)};
+  function beforePublish(){const issues=scan(true);return !issues.length||confirm(`${issues.length} anomalie${issues.length>1?'s':''} détectée${issues.length>1?'s':''}. Publier malgré tout ?`)}
+  return{scan,beforePublish}
+}
+const proofreader=installProofreader();
 async function publish(){
+  if(proofreader&&!proofreader.beforePublish())return;
   const item=currentItem();
   if(!item.title){say('Ajoute un titre avant de mettre en ligne.');return}
   if(!plain(item.html)){say('Le texte est vide.');return}
