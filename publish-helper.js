@@ -9,6 +9,35 @@ async function getFile(path){const r=await fetch(`https://api.github.com/repos/$
 async function put(path,text,message,sha){const body={message,content:b64(text),branch:BRANCH,...(sha?{sha}:{})};return api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 async function putBase64(path,data,message,sha){const body={message,content:data,branch:BRANCH,...(sha?{sha}:{})};return api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 function itemScript(item){return 'window.PITOU_LIBRARY_ITEM = '+JSON.stringify(item)+';\n'}function manifestScript(slugs){return 'window.PITOU_LIBRARY_ITEM_SLUGS = '+JSON.stringify(slugs)+';\n'}
+function rememberPending(item){
+  let items=[];try{items=JSON.parse(localStorage.getItem('pitou-published')||'[]')}catch{}
+  const pending={...item,local:true,pendingDeployment:true},i=items.findIndex(x=>x&&x.slug===item.slug);
+  if(i>=0)items[i]=pending;else items.unshift(pending);
+  localStorage.setItem('pitou-published',JSON.stringify(items));
+}
+function forgetPending(slug){
+  let items=[];try{items=JSON.parse(localStorage.getItem('pitou-published')||'[]')}catch{}
+  localStorage.setItem('pitou-published',JSON.stringify(items.filter(x=>!x||x.slug!==slug)));
+}
+function samePublishedItem(a,b){
+  return !!a&&!!b&&['slug','title','date','category','subtitle','ambience','html'].every(k=>(a[k]||'')===(b[k]||''));
+}
+async function waitForDeployment(item){
+  for(let attempt=0;attempt<36;attempt++){
+    if(attempt)await new Promise(resolve=>setTimeout(resolve,5000));
+    try{
+      const source=await fetch(`texts/${encodeURIComponent(item.slug)}.js?deployment=${Date.now()}`,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error();return r.text()}),
+            match=source.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/),online=match?JSON.parse(match[1]):null;
+      if(samePublishedItem(item,online)){
+        forgetPending(item.slug);
+        say('Déploiement terminé : « '+item.title+' » est à jour sur le site.');
+        return true
+      }
+    }catch{}
+  }
+  say('Publication envoyée. La version corrigée reste protégée dans cet éditeur en attendant la fin du déploiement.');
+  return false
+}
 async function readManifest(){const f=await getFile(MANIFEST);if(!f)return{sha:null,slugs:[]};const m=f.text.match(/=\s*(\[[\s\S]*\])\s*;?\s*$/);if(!m)throw new Error('Index des nouveaux textes illisible');return{sha:f.sha,slugs:JSON.parse(m[1])}}
 async function createGitBlob(content,encoding='utf-8'){
   return api(`https://api.github.com/repos/${OWNER}/${REPO}/git/blobs`,{
@@ -186,9 +215,9 @@ async function publish(){
       {path:MANIFEST,mode:'100644',type:'blob',sha:manifestBlob.sha}
     ];
     await publishTree(state.commitSha,state.treeSha,entries,'Publie en une opération : '+item.title);
-    localStorage.setItem('pitou-published','[]');
-    say('Publié en une seule opération : « '+item.title+' »'+(prepared.count?` — ${prepared.count} image(s).`:' — sans nouvelle image.'));
-    setTimeout(()=>location.reload(),3500)
+    rememberPending(prepared.item);
+    say('Publication envoyée : « '+item.title+' ». Déploiement du site en cours…');
+    waitForDeployment(prepared.item)
   }catch(e){
     const conflict=/422|fast forward|reference update/i.test(e.message||'');
     say((conflict?'Le site a changé pendant la publication. Réessaie une fois.':e.message)+' — aucune donnée locale n’a été supprimée.')
