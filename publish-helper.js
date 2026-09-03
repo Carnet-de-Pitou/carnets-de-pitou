@@ -94,15 +94,23 @@ function installProofreader(){
     },m=>!/^\d{2}h\d{2}$/.test(m[0])||Number(m[0].slice(0,2))>23||Number(m[0].slice(-2))>59);
     matches(/([.!?…])([A-ZÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸ])/g,'space-after-punctuation','Espace manquant après la ponctuation',m=>m[1]+' '+m[2]);
     matches(/(?<!\.)\.\.(?![.?])/g,'double-dot','Deux points seuls', '...');
+    matches(/ {2,}/g,'double-space','Espaces répétés',' ');
+    matches(/^(\s*)(\d{2}h\d{2})\s+(?=[a-zà-ÿ])/u,'hour-comma','Virgule manquante après l’heure',m=>m[1]+m[2]+', ');
     matches(/\b([\p{L}À-ÿ’'-]+)(\s+)\1\b/giu,'duplicate','Mot répété',m=>m[1]);
     matches(/«\s*»/g,'empty-quotes','Guillemets vides',null);
     matches(/\(\s*\)/g,'empty-parentheses','Parenthèses vides',null);
     matches(/\b([ldjtmnsç]|qu)\s+([’'])/giu,'apostrophe-before','Espace avant une apostrophe',m=>m[1]+m[2]);
     matches(/([’'])\s+([\p{L}À-ÿ])/gu,'apostrophe-after','Espace après une apostrophe',m=>m[1]+m[2]);
     const common=[
-      [/\beux mêmes?\b/giu,'eux-memes','Trait d’union manquant','eux-mêmes'],
+      [/\beux(?:\s+|-)mêmes?\b/giu,'eux-memes','Accord ou trait d’union incorrect','eux-mêmes'],
       [/\bquelque fois\b/giu,'quelquefois','Mot à souder','quelquefois'],
+      [/\bQuelques fois(?=\s*[,.;:!?…])/gu,'quelquefois-plural','Locution adverbiale à souder','Quelquefois'],
+      [/\bquelques fois(?=\s*[,.;:!?…])/gu,'quelquefois-plural','Locution adverbiale à souder','quelquefois'],
       [/\bvoir même\b/giu,'voire','Homophone probable','voire même'],
+      [/\bvoir(?=\s+(?:me|te|se|nous|vous|les?)\s+[\p{L}À-ÿ’'-]+)/giu,'voire-action','Homophone probable','voire'],
+      [/\b([Uu]ne) (ère|époque|période) ou\b/gu,'ou-accent','Accent manquant',m=>m[1]+' '+m[2]+' où'],
+      [/\b(qu[’']il|qu[’']elle|il|elle|on) faillie\b/giu,'faille','Conjugaison incorrecte',m=>m[1]+' faille'],
+      [/\bauto-critique\b/giu,'autocritique','Graphie à souder','autocritique'],
       [/\bA peine\b/g,'a-peine','Accent manquant','À peine'],
       [/\bont-il\b/giu,'ont-ils','Accord du sujet','ont-ils'],
       [/\bvivons nous\b/giu,'vivons-nous','Trait d’union manquant','vivons-nous'],
