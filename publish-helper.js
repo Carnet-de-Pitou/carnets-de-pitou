@@ -30,7 +30,8 @@ async function waitForDeployment(item){
             match=source.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/),online=match?JSON.parse(match[1]):null;
       if(samePublishedItem(item,online)){
         forgetPending(item.slug);
-        say('Déploiement terminé : « '+item.title+' » est à jour sur le site.');
+        const stillCurrent=window.pitouPublicationConfirmed?window.pitouPublicationConfirmed(item):true;
+        say(stillCurrent?'Déploiement terminé : « '+item.title+' » est à jour sur le site.':'Déploiement terminé. De nouvelles modifications restent à publier.');
         return true
       }
     }catch{}
