@@ -1,5 +1,5 @@
 (()=>{
-const OWNER='Carnet-de-Pitou',REPO='carnets-de-pitou',BRANCH='main',MANIFEST='library-items.js';
+const OWNER='Carnet-de-Pitou',REPO='carnets-de-pitou',BRANCH='main',MANIFEST='library-items.js',CATALOG='library-catalog.js';
 const btn=document.getElementById('publishBtn');if(!btn)return;const actions=btn.parentElement,status=document.getElementById('editorStatus');
 function say(s){if(status)status.textContent=s}function esc(s){return(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'texte'}function plain(h){const d=document.createElement('div');d.innerHTML=h;return(d.textContent||'').replace(/\s+/g,' ').trim()}
 function currentItem(){const title=(document.getElementById('edTitle')?.value||'').trim(),raw=document.getElementById('richEditor')?.innerHTML||'',text=plain(raw),subtitle=(document.getElementById('edSubtitle')?.value||'').trim(),original=document.getElementById('edOriginalSlug')?.value||'',series=document.getElementById('edSeries')?.value||'';return{slug:original||slugify(title),title,date:document.getElementById('edDate')?.value||'',category:document.getElementById('edCategory')?.value||'',subtitle,ambience:document.getElementById('edAmbience')?.value||'default',...(series?{series}:{}),minutes:Math.max(1,Math.ceil(text.split(/\s+/).filter(Boolean).length/220)),excerpt:text.slice(0,220)+(text.length>220?'…':''),html:(subtitle?`<p class="subtitle"><em>${esc(subtitle)}</em></p>`:'')+raw,local:false}}
@@ -8,7 +8,7 @@ function b64(s){const bytes=new TextEncoder().encode(s);let x='';for(const b of 
 async function getFile(path){const r=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}&_=${Date.now()}`,{headers:{Accept:'application/vnd.github+json',...(token()?{Authorization:'Bearer '+token()}:{})}});if(r.status===404)return null;if(!r.ok)throw new Error('Erreur GitHub '+r.status);const j=await r.json();return{sha:j.sha,text:unb64(j.content||'')}}
 async function put(path,text,message,sha){const body={message,content:b64(text),branch:BRANCH,...(sha?{sha}:{})};return api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
 async function putBase64(path,data,message,sha){const body={message,content:data,branch:BRANCH,...(sha?{sha}:{})};return api(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
-function itemScript(item){return 'window.PITOU_LIBRARY_ITEM = '+JSON.stringify(item)+';\n'}function manifestScript(slugs){return 'window.PITOU_LIBRARY_ITEM_SLUGS = '+JSON.stringify(slugs)+';\n'}
+function itemScript(item){return 'window.PITOU_LIBRARY_ITEM = '+JSON.stringify(item)+';\n'}function manifestScript(slugs){return 'window.PITOU_LIBRARY_ITEM_SLUGS = '+JSON.stringify(slugs)+';\n'}function catalogScript(items){return 'window.PITOU_EDITOR_CATALOG = '+JSON.stringify(items)+';\n'}
 function rememberPending(item){
   let items=[];try{items=JSON.parse(localStorage.getItem('pitou-published')||'[]')}catch{}
   const pending={...item,local:true,pendingDeployment:true},i=items.findIndex(x=>x&&x.slug===item.slug);
@@ -39,6 +39,7 @@ async function waitForDeployment(item){
   return false
 }
 async function readManifest(){const f=await getFile(MANIFEST);if(!f)return{sha:null,slugs:[]};const m=f.text.match(/=\s*(\[[\s\S]*\])\s*;?\s*$/);if(!m)throw new Error('Index des nouveaux textes illisible');return{sha:f.sha,slugs:JSON.parse(m[1])}}
+async function readCatalog(){const f=await getFile(CATALOG);if(!f)return[];const m=f.text.match(/=\s*(\[[\s\S]*\])\s*;?\s*$/);if(!m)throw new Error('Catalogue de l’éditeur illisible');return JSON.parse(m[1])}
 async function createGitBlob(content,encoding='utf-8'){
   return api(`https://api.github.com/repos/${OWNER}/${REPO}/git/blobs`,{
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content,encoding})
@@ -205,14 +206,17 @@ async function publish(){
   const direct=document.getElementById('publishDirectBtn');if(direct)direct.disabled=true;
   try{
     say('Préparation de « '+item.title+' »…');
-    const prepared=await externalizeImages(item),mf=await readManifest(),
-          slugs=[...new Set([...mf.slugs,item.slug])],state=await branchState();
+    const prepared=await externalizeImages(item),[mf,catalog,state]=await Promise.all([readManifest(),readCatalog(),branchState()]),
+          slugs=[...new Set([...mf.slugs,item.slug])],catalogMap=new Map(catalog.map(x=>[x.slug,x])),
+          {html:unusedHtml,local:unusedLocal,pendingDeployment:unusedPending,...metadata}=prepared.item;
+    catalogMap.set(metadata.slug,metadata);
     say('Publication atomique du texte, des images et de l’index…');
-    const [textBlob,manifestBlob]=await Promise.all([
-      createGitBlob(itemScript(prepared.item)),createGitBlob(manifestScript(slugs))
+    const [textBlob,manifestBlob,catalogBlob]=await Promise.all([
+      createGitBlob(itemScript(prepared.item)),createGitBlob(manifestScript(slugs)),createGitBlob(catalogScript([...catalogMap.values()]))
     ]),entries=[...prepared.entries,
       {path:'texts/'+item.slug+'.js',mode:'100644',type:'blob',sha:textBlob.sha},
-      {path:MANIFEST,mode:'100644',type:'blob',sha:manifestBlob.sha}
+      {path:MANIFEST,mode:'100644',type:'blob',sha:manifestBlob.sha},
+      {path:CATALOG,mode:'100644',type:'blob',sha:catalogBlob.sha}
     ];
     await publishTree(state.commitSha,state.treeSha,entries,'Publie en une opération : '+item.title);
     rememberPending(prepared.item);
