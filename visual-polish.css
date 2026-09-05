@@ -14,3 +14,15 @@
 .reader-top.visible{opacity:.9;visibility:visible;transform:none}.reader-top:hover,.reader-top:focus-visible{opacity:1;background:#2a1b10;border-color:#aa8350;outline:none}
 @media(max-width:700px){.hero{min-height:370px}.subcategory-card{padding:19px 18px 17px 22px}.subcategory-card h3{font-size:1.18rem;margin:7px 0 5px}.subcategory-card .meta{font-size:.68rem}.subcategory-card .excerpt{font-size:.92rem;line-height:1.42}.subcategory-card .readmore{margin-top:11px;padding-top:9px}.subcategory-card .vestige-year{right:13px;top:13px;font-size:.66rem;padding:3px 6px}.subcategory-card.has-vestige-year h3{padding-right:55px}.paper .article p.pitou-dropcap:first-letter{font-size:2.8em}.reader-top{right:10px;bottom:12px;padding:9px 11px}}
 @media(prefers-reduced-motion:reduce){.shelf,.card,.enter,.reader-top{transition:none!important}.shelf:hover,.card:hover,.card:focus-visible,.enter:hover,.reader-top{transform:none!important}}
+
+/* Lisibilité renforcée — identité sombre conservée */
+.nav a,.sound-toggle{color:#dcc9aa}
+.shelf-count,.count{color:#c3aa84}
+.card{background:linear-gradient(145deg,#33251af2,#15100cf7);border-color:#795b3d}
+.card .meta,.subcategory-card .meta{color:#c2a67c}
+.excerpt{color:#ddccb3}
+.category-trail,.category-nav .meta{color:#b59c78}
+.archive-index button{color:#ccb794}
+.archive-item{color:#dfceb2}
+.archive-undated{color:#b7a181}
+.footer{color:#b3a083}
