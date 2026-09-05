@@ -14,6 +14,10 @@
 
   const cards=document.getElementById('cards');
   const count=document.getElementById('resultCount');
+  const journalShelf=[...document.querySelectorAll('.shelf')].find(s=>isJournal(s.dataset.cat));
+  const shelfCount=journalShelf?.querySelector('.shelf-count');
+  const visibleJournalCount=(window.TEXTS||[]).filter(t=>t?.slug!==LEGACY_SLUG&&isJournal(t?.category)).length;
+  if(shelfCount)shelfCount.textContent=`${visibleJournalCount} texte${visibleJournalCount>1?'s':''}`;
   if(!cards||!count)return;
 
   function romanToInt(raw){
