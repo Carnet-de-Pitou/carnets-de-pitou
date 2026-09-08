@@ -26,3 +26,6 @@
 .archive-item{color:#dfceb2}
 .archive-undated{color:#b7a181}
 .footer{color:#b3a083}
+
+/* Abonnement RSS */
+.subscribe-toggle{white-space:nowrap}.subscribe-dialog{max-width:min(560px,calc(100vw - 28px));padding:0;border:1px solid #806342;background:#17110d;color:#e9d7b7;box-shadow:0 22px 70px #000d}.subscribe-dialog::backdrop{background:#050403cf;backdrop-filter:blur(3px)}.subscribe-panel{position:relative;padding:30px 32px 27px}.subscribe-panel h2{margin:7px 38px 15px 0;color:#f0dfc0;font-family:Georgia,'Times New Roman',serif}.subscribe-panel p{color:#d6c3a4;line-height:1.62}.subscribe-close{position:absolute;right:13px;top:10px;border:0;background:transparent;color:#d6c3a4;font-size:1.7rem;cursor:pointer}.subscribe-actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 14px}.subscribe-action{border:1px solid #9c794b;background:#2a1b10;color:#f0dfc0;padding:10px 14px;font:inherit;text-decoration:none;cursor:pointer}.subscribe-action:hover,.subscribe-action:focus-visible,.subscribe-close:focus-visible{background:#3b2818;color:#fff0cf;outline:1px solid #c69a61;outline-offset:2px}.subscribe-help{margin-bottom:0!important;color:#ad9878!important;font-size:.9rem}@media(max-width:700px){.subscribe-panel{padding:25px 20px 22px}.subscribe-actions{display:grid}.subscribe-action{text-align:center}}
