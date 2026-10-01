@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, follow">
+  <title>Page égarée — Les Carnets de Pitou</title>
+  <link rel="stylesheet" href="/carnets-de-pitou/style.css?v=20261001-webp">
+  <style>
+    body { display: flex; flex-direction: column; }
+    main { flex: 1; display: grid; place-items: center; padding: 64px 0; }
+    .lost-page { width: min(680px, 100%); text-align: center; background: #0d0906ed; border: 1px solid #684e32; padding: clamp(28px, 6vw, 60px); box-shadow: 0 18px 45px #0009; }
+    .lost-page h1 { font-weight: 400; font-size: clamp(2rem, 6vw, 3.5rem); margin: 18px 0; }
+    .lost-page p { color: #d1c1a8; line-height: 1.7; margin-bottom: 28px; }
+    .enter:focus-visible { outline: 2px solid #e9dfcc; outline-offset: 4px; }
+  </style>
+</head>
+<body>
+  <div class="dust" aria-hidden="true"></div>
+  <main class="wrap">
+    <section class="lost-page" aria-labelledby="lost-title">
+      <div class="eyebrow">Erreur 404 · Page introuvable</div>
+      <h1 id="lost-title">Une page s’est égarée…</h1>
+      <p>Ce feuillet ne se trouve pas à cette adresse.<br>Il a peut-être été déplacé, ou le lien comporte une erreur.</p>
+      <a class="enter" href="/carnets-de-pitou/index.html">Retour aux Carnets</a>
+    </section>
+  </main>
+  <footer class="footer"><strong>Les Carnets de Pitou</strong><span>Quelques pages abandonnées sur un vieux bureau.</span></footer>
+</body>
+</html>
