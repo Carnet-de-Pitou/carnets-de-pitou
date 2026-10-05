@@ -7,7 +7,11 @@
 .subcategory-card .excerpt{color:#bca98d;font-style:italic;margin-top:4px}
 .subcategory-card .readmore{border-top:1px solid #8d6b4230;padding-top:11px;margin-top:15px}
 .paper .article p.pitou-dropcap:first-letter{float:left;font-size:3.25em;line-height:.78;padding:.12em .10em 0 0;color:#654a2d;font-family:Georgia,'Times New Roman',serif;text-shadow:0 1px 0 #fff6}
-/* Accueil : appel à l'entrée un peu plus lisible sans changer l'identité */
+/* Accueil : finition légère du hero et appel à l'entrée, sans changer l'identité */
+.hero-inner::before{content:"";position:absolute;z-index:-1;inset:-52px 10% -44px;border-radius:50%;background:radial-gradient(ellipse at center,#120b073d 0%,#0d080526 46%,transparent 74%);pointer-events:none}
+.hero .eyebrow{margin-bottom:.32rem}
+.hero h1{margin:.08em 0 .16em;text-shadow:0 3px 16px #120a05d9,0 1px 0 #d1ad7220}
+.hero p{margin-bottom:22px}
 .enter{border-color:#b58b55;background:#1c120be8;box-shadow:0 8px 25px #000a,inset 0 0 0 1px #d2aa6b20}
 .enter:hover,.enter:focus-visible{background:#332114;border-color:#d0a76c;color:#fff0cf;outline:none}
 .reader-top{position:fixed;right:18px;bottom:18px;z-index:32;border:1px solid #806342;background:#17110de8;color:#e9d7b7;padding:9px 12px;font:inherit;font-size:.84rem;cursor:pointer;box-shadow:0 6px 18px #0008;opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .18s,transform .18s,visibility .18s}
