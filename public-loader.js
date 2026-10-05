@@ -1,5 +1,5 @@
 (() => {
-  const version = '20261005-links1';
+  const version = '20261005-print1';
   const loadScript = src => new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = `${src}?v=${version}`;
@@ -54,6 +54,7 @@
     await loadScript('series-site.js');
     await loadScript('journal-reconquete-order.js');
     await loadScript('visual-polish.js');
+    await loadScript('print-text.js');
     await loadScript('audio.js');
     const category=new URLSearchParams(location.search).get('category');
     if(category)window.PITOU_OPEN_CATEGORY(category);
