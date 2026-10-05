@@ -67,7 +67,12 @@
     });
     const indexed=sortable.map((node,index)=>({node,index,rank:cardRank(node)}));
     indexed.sort((a,b)=>a.rank-b.rank||a.index-b.index);
-    indexed.forEach(x=>cards.appendChild(x.node));
+    // Ne déplacer les cartes que si leur ordre a réellement changé.
+    if(indexed.some((x,i)=>x.node!==sortable[i])){
+      observer.disconnect();
+      indexed.forEach(x=>cards.appendChild(x.node));
+      observer.observe(cards,{childList:true,subtree:false});
+    }
     const visible=cards.querySelectorAll('.card[data-slug]').length;
     const category=(indexed.map(x=>itemFor(x.node)?.category).find(Boolean))||'Journal de la Reconquête';
     count.textContent=`${visible} texte${visible>1?'s':''} · ${category}`;
