@@ -56,3 +56,5 @@
  body.pitou-print-reader .article a{text-decoration:underline}
  body.pitou-print-reader .pitou-dropcap::first-letter{float:none!important;font-size:inherit!important;line-height:inherit!important;padding:0!important;margin:0!important}
 }
+
+.seo-reader .reader-nav button{flex:1 1 160px;min-height:44px;font:inherit}.reader-nav [data-print-text]:disabled{opacity:.45;cursor:wait}@media(max-width:700px){.seo-reader .reader-nav button{flex:auto}}
