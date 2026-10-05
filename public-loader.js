@@ -1,5 +1,5 @@
 (() => {
-  const version = '20261005-search1';
+  const version = '20261005-links1';
   const loadScript = src => new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = `${src}?v=${version}`;
@@ -49,11 +49,14 @@
     const map = new Map(window.PITOU_PUBLIC_CATALOG.map(item => [item.slug, { ...item, local: false }]));
     TEXTS.splice(0, TEXTS.length, ...map.values());
     window.PITOU_PUBLIC_LIBRARY = TEXTS;
+    await loadScript('text-navigation.js');
     await loadScript('app.js');
     await loadScript('series-site.js');
     await loadScript('journal-reconquete-order.js');
     await loadScript('visual-polish.js');
     await loadScript('audio.js');
+    const category=new URLSearchParams(location.search).get('category');
+    if(category)window.PITOU_OPEN_CATEGORY(category);
   })().catch(error => {
     console.error('Ouverture des Carnets:', error);
     const box = document.getElementById('cards');
