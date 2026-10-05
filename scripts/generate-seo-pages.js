@@ -1,3 +1,4 @@
+require('./generate-public-catalog.js');
 const fs=require('fs'),path=require('path'),vm=require('vm');
 // Générateur des pages SEO publiques depuis les textes individualisés.
 const root=path.resolve(__dirname,'..'),out=path.join(root,'_site'),base='https://carnet-de-pitou.github.io/carnets-de-pitou';
