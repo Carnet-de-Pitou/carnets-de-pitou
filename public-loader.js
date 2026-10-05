@@ -1,5 +1,5 @@
 (() => {
-  const version = '20261005-lazy1';
+  const version = '20261005-search1';
   const loadScript = src => new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = `${src}?v=${version}`;

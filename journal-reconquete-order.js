@@ -53,10 +53,7 @@
   }
   function journalIsOpen(){
     if(isJournal(count.textContent))return true;
-    return [...cards.querySelectorAll('.card[data-slug]')].some(n=>{
-      const t=itemFor(n);
-      return t&&isJournal(t.category);
-    });
+    return false;
   }
   function reorder(){
     if(!journalIsOpen())return;
